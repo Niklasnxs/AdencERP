@@ -38,9 +38,9 @@ export function Calendar() {
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const handleSubmitAbsence = (e: React.FormEvent) => {
+  const handleSubmitAbsence = async (e: React.FormEvent) => {
     e.preventDefault();
-    store.createAbsence({
+    await store.createAbsence({
       user_id: user.id,
       date: absenceDate,
       type: absenceType,
@@ -50,6 +50,8 @@ export function Calendar() {
     setAbsenceType('Krankheit');
     setAbsenceReason('');
     setShowAbsenceForm(false);
+    // Force page refresh to update calendar
+    window.location.reload();
   };
 
   const users = isAdmin ? store.getUsers() : [user];
