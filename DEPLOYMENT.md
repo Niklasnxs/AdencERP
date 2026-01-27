@@ -1,400 +1,303 @@
-# AdencERP Docker Deployment Guide
+# AdencERP Deployment Guide (Without Docker)
 
-Complete guide to deploy AdencERP TimeTrack & Attendance System using Docker.
+Server: **http://3.27.88.221**
 
-## Prerequisites
+## Prerequisites on Server
 
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- Server with ports 80 and 3001 available
-- SSH access to your server
+1. **Node.js** (v18 or higher)
+2. **PostgreSQL** (v15 or higher)
+3. **PM2** (Process manager)
+4. **Nginx** (Web server)
 
-## Quick Start
+---
 
-### 1. Clone Repository on Server
+## Installation Steps
+
+### 1. Install Prerequisites
 
 ```bash
-git clone https://github.com/Niklasnxs/AdencERP.git
-cd AdencERP
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# Install PM2 globally
+sudo npm install -g pm2
+
+# Install Nginx
+sudo apt install -y nginx
 ```
 
-### 2. Configure Environment Variables
+### 2. Setup PostgreSQL Database
 
-**A. Root .env file (optional for future backend):**
-
-Copy the example file and configure:
 ```bash
+# Switch to postgres user
+sudo -u postgres psql
+
+# In psql:
+CREATE DATABASE adencerp;
+CREATE USER adencerp WITH ENCRYPTED PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE adencerp TO adencerp;
+\q
+```
+
+### 3. Clone Repository
+
+```bash
+cd /var/www
+sudo git clone https://github.com/Niklasnxs/AdencERP.git
+cd AdencERP
+sudo chown -R $USER:$USER /var/www/AdencERP
+```
+
+### 4. Setup Backend Service
+
+```bash
+cd /var/www/AdencERP/backend-service
+
+# Install dependencies
+npm install
+
+# Create .env file
 cp .env.example .env
+nano .env
 ```
 
 Edit `.env`:
 ```env
-DB_USER=adencerp
-DB_PASSWORD=your_secure_password_here
-DB_HOST=db
+DB_HOST=localhost
 DB_PORT=5432
+DB_USER=adencerp
+DB_PASSWORD=your_secure_password
 DB_NAME=adencerp
+PORT=3002
+NODE_ENV=production
+JWT_SECRET=your_random_jwt_secret_here
+ALLOWED_ORIGINS=http://3.27.88.221,http://localhost:5173
 ```
-
-**B. Email service configuration:**
-
-The email service requires SMTP credentials. Make sure `email-service/.env` file exists with:
-
-```env
-SMTP_HOST=v167832.kasserver.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=niklas.schindhelm@adence.de
-SMTP_PASS=diu6hkRzkzMMyVgRDfkq
-IMAP_HOST=v167832.kasserver.com
-IMAP_PORT=993
-IMAP_USER=niklas.schindhelm@adence.de
-IMAP_PASS=diu6hkRzkzMMyVgRDfkq
-PORT=3001
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost
-```
-
-**Note:** In production, update `ALLOWED_ORIGINS` to include your server's domain.
-
-### 3. Build and Start Containers
 
 ```bash
-# Build images and start containers
-docker-compose up -d --build
+# Run database migrations
+npm run migrate
 
-# Check container status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
+# Start with PM2
+pm2 start server.js --name adencerp-backend
+pm2 save
+pm2 startup
 ```
 
-### 4. Access the Application
-
-Open your browser and navigate to:
-- **Frontend:** `http://your-server-ip`
-- **Email Service Health:** `http://your-server-ip:3001/api/health`
-
-## Architecture
-
-```
-┌─────────────────┐
-│   User Browser  │
-└────────┬────────┘
-         │ Port 80
-         ▼
-┌─────────────────┐
-│  Nginx (Frontend)│
-│   React App      │
-└────────┬────────┘
-         │ /api/*
-         ▼
-┌─────────────────┐      ┌──────────────────┐
-│  Email Service   │      │   PostgreSQL DB  │
-│   Node.js API    │◄─────┤   Port 5432      │
-│   Port 3001      │      │   (Future)       │
-└──────────────────┘      └──────────────────┘
-```
-
-## Container Details
-
-### Frontend Container
-- **Name:** `adencerp-frontend`
-- **Image:** Built from root Dockerfile
-- **Port:** 80:80
-- **Technology:** React + Vite + Nginx
-- **Features:**
-  - Multi-stage build (build + serve)
-  - Gzip compression
-  - Static asset caching
-  - React Router support
-  - API proxy to email service
-
-### Email Service Container
-- **Name:** `adencerp-email-service`
-- **Image:** Built from email-service/Dockerfile
-- **Port:** 3001:3001
-- **Technology:** Node.js + Express + Nodemailer
-- **Features:**
-  - Email notifications
-  - Health check endpoint
-  - SMTP configuration
-  - Auto-restart on failure
-
-### PostgreSQL Database Container
-- **Name:** `adencerp-database`
-- **Image:** postgres:15-alpine
-- **Port:** 5432:5432
-- **Technology:** PostgreSQL 15
-- **Features:**
-  - Persistent data storage (volume)
-  - Health checks
-  - Auto-restart on failure
-  - Ready for future backend migration
-- **Note:** Currently not used by frontend (uses client-side storage)
-
-## Common Commands
-
-### Start/Stop Services
+### 5. Setup Email Service
 
 ```bash
-# Start all services
-docker-compose up -d
+cd /var/www/AdencERP/email-service
 
-# Stop all services
-docker-compose down
+# Install dependencies
+npm install
 
-# Restart a specific service
-docker-compose restart frontend
-docker-compose restart email-service
+# Create .env file
+cp .env.example .env
+nano .env
 ```
 
-### View Logs
+Edit `.env` with your SMTP credentials
 
 ```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f frontend
-docker-compose logs -f email-service
-
-# Last 100 lines
-docker-compose logs --tail=100
+# Start with PM2
+pm2 start server.js --name adencerp-email
+pm2 save
 ```
 
-### Update Application
+### 6. Build Frontend
 
 ```bash
-# Pull latest code
-git pull origin main
+cd /var/www/AdencERP
 
-# Rebuild and restart
-docker-compose down
-docker-compose up -d --build
+# Install dependencies
+npm install
 
-# Or use this shortcut
-docker-compose up -d --build --force-recreate
+# Build for production
+npm run build
 ```
 
-### Container Management
+### 7. Configure Nginx
 
 ```bash
-# Enter container shell
-docker exec -it adencerp-frontend sh
-docker exec -it adencerp-email-service sh
-
-# Check container resource usage
-docker stats
-
-# Remove all containers and images
-docker-compose down --rmi all --volumes
+sudo nano /etc/nginx/sites-available/adencerp
 ```
 
-## Production Optimizations
-
-### 1. Use a Reverse Proxy (Recommended)
-
-Install Nginx on host machine:
+Add this configuration:
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
-
+    server_name 3.27.88.221;
+    
+    # Frontend (React build)
     location / {
-        proxy_pass http://localhost:80;
+        root /var/www/AdencERP/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:3002/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # Email Service
+    location /api/send-email {
+        proxy_pass http://localhost:3001/api/send-email;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 ```
 
-### 2. Enable HTTPS with Let's Encrypt
+Enable site and restart nginx:
 
 ```bash
-# Install certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot --nginx -d yourdomain.com
-
-# Auto-renewal (already configured by certbot)
-sudo systemctl status certbot.timer
+sudo ln -s /etc/nginx/sites-available/adencerp /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
 ```
 
-Update nginx.conf to redirect HTTP to HTTPS:
+---
 
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    return 301 https://$server_name$request_uri;
-}
+## Access the Application
 
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com;
-    
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    
-    # Your existing location blocks...
-}
-```
+**URL:** http://3.27.88.221
 
-### 3. Set Up Automatic Backups
+**Default Login:**
+- Admin: `admin@adenc.de` / `admin123`
+- Employee: `max.mueller@adenc.de` / `emp123`
 
-Create a backup script:
+---
+
+## Update Deployment
+
+When you push changes to GitHub:
 
 ```bash
-#!/bin/bash
-# backup.sh
+cd /var/www/AdencERP
 
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups/adencerp"
+# Pull latest code
+git pull
 
-mkdir -p $BACKUP_DIR
+# Update backend
+cd backend-service
+npm install
+pm2 restart adencerp-backend
 
-# Backup would go here if using a database
-# For now, the app uses client-side storage
+# Update email service
+cd ../email-service
+npm install
+pm2 restart adencerp-email
 
-echo "Backup completed: $DATE"
+# Rebuild frontend
+cd ..
+npm install
+npm run build
+
+# Nginx will serve the new build automatically
 ```
 
-Add to crontab:
+---
+
+## PM2 Commands
+
 ```bash
-# Daily backup at 2 AM
-0 2 * * * /path/to/backup.sh
+# View running processes
+pm2 list
+
+# View logs
+pm2 logs adencerp-backend
+pm2 logs adencerp-email
+
+# Restart services
+pm2 restart adencerp-backend
+pm2 restart adencerp-email
+
+# Stop services
+pm2 stop adencerp-backend
+pm2 stop adencerp-email
 ```
 
-### 4. Monitor with Docker Healthchecks
-
-The email service already has a healthcheck configured. Monitor it:
-
-```bash
-# Check health status
-docker inspect --format='{{.State.Health.Status}}' adencerp-email-service
-
-# Watch health status
-watch -n 5 'docker inspect --format="{{.State.Health.Status}}" adencerp-email-service'
-```
-
-### 5. Resource Limits
-
-Update docker-compose.yml to add resource limits:
-
-```yaml
-services:
-  frontend:
-    # ... existing config
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-```
+---
 
 ## Troubleshooting
 
-### Container Won't Start
+### Backend not connecting to PostgreSQL
+```bash
+# Check PostgreSQL is running
+sudo systemctl status postgresql
+
+# Check connection
+psql -U adencerp -d adencerp -h localhost
+```
+
+### Port already in use
+```bash
+# Check what's using port 3002
+sudo lsof -i :3002
+
+# Kill process if needed
+sudo kill -9 <PID>
+```
+
+### Nginx 502 error
+```bash
+# Check backend is running
+pm2 list
+
+# Check nginx error logs
+sudo tail -f /var/log/nginx/error.log
+```
+
+---
+
+## Security Recommendations
+
+1. Change default passwords in database
+2. Use strong JWT_SECRET
+3. Configure firewall (ufw)
+4. Setup SSL with Let's Encrypt
+5. Regular backups of PostgreSQL database
 
 ```bash
-# Check logs
-docker-compose logs frontend
-docker-compose logs email-service
+# Firewall
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
 
-# Rebuild from scratch
-docker-compose down --rmi all
-docker-compose build --no-cache
-docker-compose up -d
+# SSL with Let's Encrypt
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
 ```
 
-### Port Already in Use
+---
+
+## Database Backup
 
 ```bash
-# Find what's using port 80
-sudo lsof -i :80
+# Backup
+pg_dump -U adencerp adencerp > backup_$(date +%Y%m%d).sql
 
-# Kill the process or change port in docker-compose.yml
-ports:
-  - "8080:80"  # Use port 8080 instead
+# Restore
+psql -U adencerp adencerp < backup_20260127.sql
 ```
-
-### Email Service Not Working
-
-```bash
-# Check if service is running
-docker-compose ps
-
-# Test email service directly
-curl http://localhost:3001/api/health
-
-# Check environment variables
-docker exec adencerp-email-service env | grep SMTP
-```
-
-### Frontend Not Loading
-
-```bash
-# Check if nginx is running
-docker exec adencerp-frontend nginx -t
-
-# Rebuild frontend
-docker-compose up -d --build frontend
-```
-
-## Security Considerations
-
-1. **Environment Variables**: Never commit `.env` files to git
-2. **Firewall**: Only expose necessary ports (80, 443)
-3. **Updates**: Regularly update Docker images
-4. **HTTPS**: Always use HTTPS in production
-5. **Secrets**: Use Docker secrets for sensitive data in production
-
-## Performance Tuning
-
-### Nginx Optimization
-
-Edit `nginx.conf` for better performance:
-
-```nginx
-worker_processes auto;
-worker_rlimit_nofile 65535;
-
-events {
-    worker_connections 4096;
-    use epoll;
-    multi_accept on;
-}
-```
-
-### Docker Compose Performance
-
-```yaml
-services:
-  frontend:
-    # ... existing config
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-```
-
-## Support
-
-For issues or questions:
-1. Check logs: `docker-compose logs -f`
-2. Verify configuration files
-3. Review this documentation
-4. Contact system administrator
-
-## License
-
-Private project - All rights reserved

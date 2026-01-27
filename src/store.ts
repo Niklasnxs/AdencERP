@@ -5,8 +5,7 @@ import {
   projectsAPI, 
   tasksAPI, 
   timeLogsAPI, 
-  absencesAPI, 
-  notificationsAPI 
+  absencesAPI
 } from './services/api';
 
 // Data store using PostgreSQL API
@@ -33,7 +32,7 @@ class DataStore {
     return user ? { ...user, password: undefined } : undefined;
   }
 
-  authenticateUser(email: string, password: string): User | null {
+  authenticateUser(_email: string, _password: string): User | null {
     // Authentication is now handled by AuthContext with JWT
     return null;
   }
@@ -311,7 +310,7 @@ class DataStore {
   }
 
   // Notification methods (kept for compatibility, but not heavily used)
-  getNotificationsByUser(userId: string): Notification[] {
+  getNotificationsByUser(_userId: string): Notification[] {
     return [];
   }
 
@@ -324,7 +323,7 @@ class DataStore {
     };
   }
 
-  markNotificationAsRead(id: string): boolean {
+  markNotificationAsRead(_id: string): boolean {
     return true;
   }
 

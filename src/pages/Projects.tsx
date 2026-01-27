@@ -32,11 +32,11 @@ export function Projects() {
   const allUsers = store.getUsers(); // Include all users (admins + employees)
   const selectedProjectData = projects.find(p => p.id === selectedProject);
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim() || selectedUsers.length === 0) return;
 
-    const newProject = store.createProject({
+    const newProject = await store.createProject({
       name: newProjectName,
       is_active: true,
       assigned_user_ids: selectedUsers,
