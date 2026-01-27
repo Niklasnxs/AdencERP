@@ -25,65 +25,19 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
-        path="/"
         element={
           <PrivateRoute>
-            <Layout>
-              <DashboardRoute />
-            </Layout>
+            <Layout />
           </PrivateRoute>
         }
-      />
-      <Route
-        path="/projekte"
-        element={
-          <PrivateRoute>
-            <Layout>
-              <Projects />
-            </Layout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/zeiterfassung"
-        element={
-          <PrivateRoute>
-            <Layout>
-              <TimeTracking />
-            </Layout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/mitarbeiterzeiten"
-        element={
-          <PrivateRoute>
-            <Layout>
-              <EmployeeTimes />
-            </Layout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/kalender"
-        element={
-          <PrivateRoute>
-            <Layout>
-              <Calendar />
-            </Layout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/benutzer"
-        element={
-          <PrivateRoute>
-            <Layout>
-              <Users />
-            </Layout>
-          </PrivateRoute>
-        }
-      />
+      >
+        <Route path="/" element={<DashboardRoute />} />
+        <Route path="/projekte" element={<Projects />} />
+        <Route path="/zeiterfassung" element={<TimeTracking />} />
+        <Route path="/mitarbeiterzeiten" element={<EmployeeTimes />} />
+        <Route path="/kalender" element={<Calendar />} />
+        <Route path="/benutzer" element={<Users />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
