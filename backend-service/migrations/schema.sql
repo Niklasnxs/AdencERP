@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'employee')),
+    address TEXT,
+    birthday DATE,
+    employment_type VARCHAR(50) CHECK (employment_type IN ('full_time', 'part_time', 'internship', 'minijob')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

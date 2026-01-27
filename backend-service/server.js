@@ -80,7 +80,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, created_at FROM users ORDER BY id'
+      'SELECT id, email, full_name, role, address, birthday, employment_type, created_at FROM users ORDER BY id'
     );
     res.json(result.rows);
   } catch (error) {
@@ -93,7 +93,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
 app.get('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, address, birthday, employment_type, created_at FROM users WHERE id = $1',
       [req.params.id]
     );
     
@@ -115,12 +115,12 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await db.query(
-      'INSERT INTO users (email, password, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role, created_at',
-      [email, hashedPassword, full_name, role]
+      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, full_name, role, address, birthday, employment_type, created_at',
+      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -140,7 +140,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type } = req.body;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -162,11 +162,23 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       updates.push(`role = $${paramCount++}`);
       values.push(role);
     }
+    if (address !== undefined) {
+      updates.push(`address = $${paramCount++}`);
+      values.push(address || null);
+    }
+    if (birthday !== undefined) {
+      updates.push(`birthday = $${paramCount++}`);
+      values.push(birthday || null);
+    }
+    if (employment_type !== undefined) {
+      updates.push(`employment_type = $${paramCount++}`);
+      values.push(employment_type || null);
+    }
 
     values.push(req.params.id);
 
     const result = await db.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, created_at`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, created_at`,
       values
     );
 

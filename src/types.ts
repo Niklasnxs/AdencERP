@@ -1,5 +1,6 @@
 // User and Authentication Types
 export type UserRole = 'admin' | 'employee';
+export type EmploymentType = 'full_time' | 'part_time' | 'internship' | 'minijob';
 
 export interface User {
   id: string;
@@ -7,6 +8,9 @@ export interface User {
   full_name: string;
   role: UserRole;
   password?: string; // Only used in mock store
+  address?: string;
+  birthday?: string; // YYYY-MM-DD format
+  employment_type?: EmploymentType;
 }
 
 // Project Types

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { Users as UsersIcon, Plus, Shield, User, Edit, Trash2 } from 'lucide-react';
-import type { UserRole } from '../types';
+import type { UserRole, EmploymentType } from '../types';
 
 export function Users() {
   const { user: currentUser, isAdmin } = useAuth();
@@ -15,6 +15,9 @@ export function Users() {
     password: '',
     full_name: '',
     role: 'employee' as UserRole,
+    address: '',
+    birthday: '',
+    employment_type: '' as EmploymentType | '',
   });
 
   if (!isAdmin) {
@@ -39,6 +42,9 @@ export function Users() {
         email: formData.email,
         full_name: formData.full_name,
         role: formData.role,
+        address: formData.address || undefined,
+        birthday: formData.birthday || undefined,
+        employment_type: formData.employment_type || undefined,
       };
       
       // Only update password if provided
@@ -55,6 +61,9 @@ export function Users() {
         password: formData.password,
         full_name: formData.full_name,
         role: formData.role,
+        address: formData.address || undefined,
+        birthday: formData.birthday || undefined,
+        employment_type: formData.employment_type || undefined,
       });
     }
     
@@ -63,6 +72,9 @@ export function Users() {
       password: '',
       full_name: '',
       role: 'employee',
+      address: '',
+      birthday: '',
+      employment_type: '',
     });
     setShowForm(false);
     // Refresh user list after API call completes
@@ -76,6 +88,9 @@ export function Users() {
       password: '',
       full_name: user.full_name,
       role: user.role,
+      address: user.address || '',
+      birthday: user.birthday || '',
+      employment_type: user.employment_type || '',
     });
     setShowForm(true);
   };
@@ -114,6 +129,9 @@ export function Users() {
               password: '',
               full_name: '',
               role: 'employee',
+              address: '',
+              birthday: '',
+              employment_type: '',
             });
             setShowForm(true);
           }}
@@ -187,6 +205,55 @@ export function Users() {
                   <option value="employee">Mitarbeiter</option>
                   <option value="admin">Administrator</option>
                 </select>
+              </div>
+
+              {/* Employee Information Section */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Mitarbeiterinformationen</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Adresse
+                    </label>
+                    <textarea
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Straße, PLZ Ort"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Geburtsdatum
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.birthday}
+                      onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Beschäftigungsart
+                    </label>
+                    <select
+                      value={formData.employment_type}
+                      onChange={(e) => setFormData({ ...formData, employment_type: e.target.value as EmploymentType | '' })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                    >
+                      <option value="">Nicht angegeben</option>
+                      <option value="full_time">Vollzeit</option>
+                      <option value="part_time">Teilzeit</option>
+                      <option value="internship">Praktikum</option>
+                      <option value="minijob">Minijob</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2">
