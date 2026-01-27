@@ -28,6 +28,9 @@ export function Calendar() {
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [newStatusType, setNewStatusType] = useState<AbsenceType>('Krankheit');
   const [newStatusReason, setNewStatusReason] = useState<string>('');
+  const [newTimeLogHours, setNewTimeLogHours] = useState<number>(8);
+  const [newTimeLogProject, setNewTimeLogProject] = useState<string>('');
+  const [newTimeLogNotes, setNewTimeLogNotes] = useState<string>('');
 
   if (!user) return null;
 
@@ -331,7 +334,98 @@ export function Calendar() {
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                           <h4 className="font-semibold text-gray-900 mb-3">Status ändern</h4>
                           
-                          {status === 'Anwesend' || status === 'Unentschuldigt' ? (
+                          {(status === 'Entschuldigt' || status === 'Unentschuldigt') ? (
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600 mb-3">Zu "Anwesend" ändern (Arbeitszeit eintragen):</p>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Projekt *
+                                </label>
+                                <select
+                                  value={newTimeLogProject}
+                                  onChange={(e) => setNewTimeLogProject(e.target.value)}
+                                  className="w-full px-4 py-2 border rounded-lg"
+                                  required
+                                >
+                                  <option value="">Projekt auswählen...</option>
+                                  {store.getActiveProjects().map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Stunden *
+                                </label>
+                                <input
+                                  type="number"
+                                  value={newTimeLogHours}
+                                  onChange={(e) => setNewTimeLogHours(parseFloat(e.target.value))}
+                                  min="0"
+                                  step="0.5"
+                                  className="w-full px-4 py-2 border rounded-lg"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Notizen (optional)
+                                </label>
+                                <textarea
+                                  value={newTimeLogNotes}
+                                  onChange={(e) => setNewTimeLogNotes(e.target.value)}
+                                  className="w-full px-4 py-2 border rounded-lg h-20"
+                                  placeholder="Beschreibung der Arbeit..."
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (!newTimeLogProject) {
+                                      alert('Bitte wählen Sie ein Projekt aus');
+                                      return;
+                                    }
+                                    // Delete the absence if exists
+                                    if (dayAbsence) {
+                                      const absenceIndex = store.getAbsences().findIndex(a => a.id === dayAbsence.id);
+                                      if (absenceIndex !== -1) {
+                                        store.getAbsences().splice(absenceIndex, 1);
+                                      }
+                                    }
+                                    // Create time log
+                                    store.createTimeLog({
+                                      user_id: selectedDay.userId,
+                                      project_id: newTimeLogProject,
+                                      date: selectedDay.date,
+                                      hours: newTimeLogHours,
+                                      notes: newTimeLogNotes || undefined,
+                                    });
+                                    setIsChangingStatus(false);
+                                    setNewTimeLogProject('');
+                                    setNewTimeLogHours(8);
+                                    setNewTimeLogNotes('');
+                                    setShowDayDetailsModal(false);
+                                    setSelectedDay(null);
+                                  }}
+                                  disabled={!newTimeLogProject}
+                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                >
+                                  Zu Anwesend ändern
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsChangingStatus(false);
+                                    setNewTimeLogProject('');
+                                    setNewTimeLogHours(8);
+                                    setNewTimeLogNotes('');
+                                  }}
+                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : status === 'Anwesend' ? (
                             <div className="space-y-3">
                               <p className="text-sm text-gray-600">Zu "Entschuldigt" ändern:</p>
                               <div>
