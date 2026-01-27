@@ -30,7 +30,7 @@ export function Users() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (editingUser) {
@@ -46,11 +46,11 @@ export function Users() {
         updates.password = formData.password;
       }
       
-      store.updateUser(editingUser.id, updates);
+      await store.updateUser(editingUser.id, updates);
       setEditingUser(null);
     } else {
       // Create new user
-      store.createUser({
+      await store.createUser({
         email: formData.email,
         password: formData.password,
         full_name: formData.full_name,
@@ -65,6 +65,7 @@ export function Users() {
       role: 'employee',
     });
     setShowForm(false);
+    // Refresh user list after API call completes
     setUsers(store.getUsers());
   };
 
@@ -87,9 +88,9 @@ export function Users() {
     setDeletingUserId(userId);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingUserId) {
-      store.deleteUser(deletingUserId);
+      await store.deleteUser(deletingUserId);
       setUsers(store.getUsers());
       setDeletingUserId(null);
     }

@@ -48,11 +48,11 @@ export function Projects() {
     setSelectedProject(newProject.id);
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim() || !selectedProject) return;
 
-    store.createTask({
+    await store.createTask({
       project_id: selectedProject,
       title: newTaskTitle,
       description: newTaskDesc || undefined,
@@ -80,11 +80,11 @@ export function Projects() {
     setShowNewTaskForm(false);
   };
 
-  const handleAssignTask = (e: React.FormEvent) => {
+  const handleAssignTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTaskId || !newTaskAssignedTo) return;
 
-    store.updateTask(selectedTaskId, {
+    await store.updateTask(selectedTaskId, {
       assigned_to_user_id: newTaskAssignedTo,
       status: 'In Bearbeitung',
     });
@@ -94,14 +94,14 @@ export function Projects() {
     setNewTaskAssignedTo('');
   };
 
-  const handleClaimTask = (taskId: string) => {
-    store.claimTask(taskId, user.id);
+  const handleClaimTask = async (taskId: string) => {
+    await store.claimTask(taskId, user.id);
     // Force component re-render by creating new array reference
     setTasks([...store.getTasks()]);
   };
 
-  const handleUpdateTaskStatus = (taskId: string, status: TaskStatus) => {
-    store.updateTask(taskId, { status });
+  const handleUpdateTaskStatus = async (taskId: string, status: TaskStatus) => {
+    await store.updateTask(taskId, { status });
     setTasks(store.getTasks());
   };
 
@@ -113,11 +113,11 @@ export function Projects() {
     setShowEditTaskForm(true);
   };
 
-  const handleUpdateTask = (e: React.FormEvent) => {
+  const handleUpdateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTask || !newTaskTitle.trim()) return;
 
-    store.updateTask(editingTask.id, {
+    await store.updateTask(editingTask.id, {
       title: newTaskTitle,
       description: newTaskDesc || undefined,
       assigned_to_user_id: newTaskAssignedTo || null,
