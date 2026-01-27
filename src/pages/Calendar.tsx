@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { Calendar as CalendarIcon, Plus, X, Edit, Clock } from 'lucide-react';
@@ -9,6 +9,7 @@ import type { AbsenceType } from '../types';
 export function Calendar() {
   const { user, isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [refreshKey, setRefreshKey] = useState(0);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ date: string; userId: string } | null>(null);
@@ -52,8 +53,10 @@ export function Calendar() {
     setShowAbsenceForm(false);
     // Re-initialize store to fetch fresh data
     await store.initialize();
-    // Force component re-render by navigating to same page
-    window.location.href = window.location.href;
+    // Give the API calls time to complete before forcing re-render
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 500);
   };
 
   const users = isAdmin ? store.getUsers() : [user];
