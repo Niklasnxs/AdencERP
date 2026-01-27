@@ -81,14 +81,13 @@ CREATE INDEX IF NOT EXISTS idx_tasks_assigned_user ON tasks(assigned_to_user_id)
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 
 -- Insert default admin user (password: admin123)
--- Note: In production, use bcrypt hashed passwords
 INSERT INTO users (email, password, full_name, role) 
-VALUES ('admin@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Admin User', 'admin')
+VALUES ('admin@adenc.de', '$2b$10$4hBu7tQKsXoFiAqxfra5.ur8W1TNndCi/fE9tkdDByJoVDtIwVyV6', 'Admin User', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
--- Insert default employees
+-- Insert default employees (password: emp123)
 INSERT INTO users (email, password, full_name, role) 
 VALUES 
-    ('max.mueller@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Max Müller', 'employee'),
-    ('anna.schmidt@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Anna Schmidt', 'employee')
+    ('max.mueller@adenc.de', '$2b$10$vaRMzk6LZl3PHUz2WAHR..184rc9UigH9/DnSiZRC.ECN/ZlbsaOG', 'Max Müller', 'employee'),
+    ('anna.schmidt@adenc.de', '$2b$10$vaRMzk6LZl3PHUz2WAHR..184rc9UigH9/DnSiZRC.ECN/ZlbsaOG', 'Anna Schmidt', 'employee')
 ON CONFLICT (email) DO NOTHING;
