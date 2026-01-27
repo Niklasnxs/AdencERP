@@ -1,8 +1,10 @@
 import type { User, Project, Task, TimeLog, Absence, Notification, AttendanceStatus, DailyAttendance } from './types';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 
-// Mock data store (simulates a database)
+// Mock data store (simulates a database with localStorage persistence)
 class DataStore {
+  private readonly STORAGE_KEY = 'adencerp_data';
+  
   private users: User[] = [
     {
       id: '1',
@@ -103,6 +105,43 @@ class DataStore {
 
   private notifications: Notification[] = [];
 
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        this.users = data.users || this.users;
+        this.projects = data.projects || this.projects;
+        this.tasks = data.tasks || this.tasks;
+        this.timeLogs = data.timeLogs || this.timeLogs;
+        this.absences = data.absences || this.absences;
+        this.notifications = data.notifications || this.notifications;
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+  }
+
+  private saveToStorage() {
+    try {
+      const data = {
+        users: this.users,
+        projects: this.projects,
+        tasks: this.tasks,
+        timeLogs: this.timeLogs,
+        absences: this.absences,
+        notifications: this.notifications,
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }
+
   // User methods
   getUsers(): User[] {
     return this.users.map(u => ({ ...u, password: undefined }));
@@ -124,7 +163,24 @@ class DataStore {
       id: Date.now().toString(),
     };
     this.users.push(newUser);
+    this.saveToStorage();
     return { ...newUser, password: undefined };
+  }
+
+  updateUser(id: string, updates: Partial<User> & { password?: string }): User | null {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index === -1) return null;
+    this.users[index] = { ...this.users[index], ...updates };
+    this.saveToStorage();
+    return { ...this.users[index], password: undefined };
+  }
+
+  deleteUser(id: string): boolean {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index === -1) return false;
+    this.users.splice(index, 1);
+    this.saveToStorage();
+    return true;
   }
 
   // Project methods
@@ -147,6 +203,7 @@ class DataStore {
       created_at: new Date().toISOString(),
     };
     this.projects.push(newProject);
+    this.saveToStorage();
     return newProject;
   }
 
@@ -154,6 +211,7 @@ class DataStore {
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) return null;
     this.projects[index] = { ...this.projects[index], ...updates };
+    this.saveToStorage();
     return this.projects[index];
   }
 
@@ -202,6 +260,7 @@ class DataStore {
       });
     }
     
+    this.saveToStorage();
     return newTask;
   }
 
@@ -221,6 +280,7 @@ class DataStore {
       });
     }
     
+    this.saveToStorage();
     return this.tasks[index];
   }
 
@@ -255,6 +315,7 @@ class DataStore {
       created_at: new Date().toISOString(),
     };
     this.timeLogs.push(newTimeLog);
+    this.saveToStorage();
     return newTimeLog;
   }
 
@@ -262,6 +323,7 @@ class DataStore {
     const index = this.timeLogs.findIndex(tl => tl.id === id);
     if (index === -1) return null;
     this.timeLogs[index] = { ...this.timeLogs[index], ...updates };
+    this.saveToStorage();
     return this.timeLogs[index];
   }
 
@@ -269,6 +331,7 @@ class DataStore {
     const index = this.timeLogs.findIndex(tl => tl.id === id);
     if (index === -1) return false;
     this.timeLogs.splice(index, 1);
+    this.saveToStorage();
     return true;
   }
 
@@ -292,6 +355,7 @@ class DataStore {
       created_at: new Date().toISOString(),
     };
     this.absences.push(newAbsence);
+    this.saveToStorage();
     return newAbsence;
   }
 
@@ -299,6 +363,7 @@ class DataStore {
     const index = this.absences.findIndex(a => a.id === id);
     if (index === -1) return null;
     this.absences[index] = { ...this.absences[index], ...updates };
+    this.saveToStorage();
     return this.absences[index];
   }
 
@@ -315,6 +380,7 @@ class DataStore {
       created_at: new Date().toISOString(),
     };
     this.notifications.push(newNotification);
+    this.saveToStorage();
     return newNotification;
   }
 
@@ -322,6 +388,7 @@ class DataStore {
     const notification = this.notifications.find(n => n.id === id);
     if (!notification) return false;
     notification.read = true;
+    this.saveToStorage();
     return true;
   }
 
