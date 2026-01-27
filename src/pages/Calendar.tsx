@@ -50,8 +50,10 @@ export function Calendar() {
     setAbsenceType('Krankheit');
     setAbsenceReason('');
     setShowAbsenceForm(false);
-    // Force page refresh to update calendar
-    window.location.reload();
+    // Re-initialize store to fetch fresh data
+    await store.initialize();
+    // Force component re-render by navigating to same page
+    window.location.href = window.location.href;
   };
 
   const users = isAdmin ? store.getUsers() : [user];

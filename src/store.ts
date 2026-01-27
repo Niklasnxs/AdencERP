@@ -353,15 +353,16 @@ class DataStore {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
     
-    const employees = this.cachedUsers.filter(u => u.role === 'employee');
+    // Include ALL users, not just employees (admins can also have absences)
+    const allUsers = this.cachedUsers;
     
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
       const dateStr = format(date, 'yyyy-MM-dd');
-      employees.forEach(emp => {
+      allUsers.forEach(user => {
         attendance.push({
-          user_id: emp.id,
+          user_id: user.id,
           date: dateStr,
-          status: this.calculateAttendanceStatus(emp.id, dateStr),
+          status: this.calculateAttendanceStatus(user.id, dateStr),
         });
       });
     }
