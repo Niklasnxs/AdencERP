@@ -20,6 +20,14 @@ export function Calendar() {
   const [absenceDate, setAbsenceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
   const [absenceReason, setAbsenceReason] = useState('');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [editingTimeLogId, setEditingTimeLogId] = useState<string | null>(null);
+  const [editTimeLogHours, setEditTimeLogHours] = useState<number>(0);
+  const [editTimeLogNotes, setEditTimeLogNotes] = useState<string>('');
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [newStatusType, setNewStatusType] = useState<AbsenceType>('Krankheit');
+  const [newStatusReason, setNewStatusReason] = useState<string>('');
 
   if (!user) return null;
 
@@ -302,11 +310,123 @@ export function Calendar() {
 
                   {/* Content */}
                   <div className="p-6">
-                    {/* Status Badge */}
+                    {/* Status Badge with Change Option */}
                     <div className="mb-6">
-                      <span className={`inline-flex px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
-                        Status: {status}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className={`inline-flex px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
+                          Status: {status}
+                        </span>
+                        {!isChangingStatus && (
+                          <button
+                            onClick={() => setIsChangingStatus(true)}
+                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          >
+                            Status ändern
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Status Change Form */}
+                      {isChangingStatus && (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-gray-900 mb-3">Status ändern</h4>
+                          
+                          {status === 'Anwesend' || status === 'Unentschuldigt' ? (
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600">Zu "Entschuldigt" ändern:</p>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Abwesenheitstyp
+                                </label>
+                                <select
+                                  value={newStatusType}
+                                  onChange={(e) => setNewStatusType(e.target.value as AbsenceType)}
+                                  className="w-full px-4 py-2 border rounded-lg"
+                                >
+                                  <option value="Krankheit">Krankheit</option>
+                                  <option value="Urlaub">Urlaub</option>
+                                  <option value="Schule">Schule</option>
+                                  <option value="Sonstiges">Sonstiges</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Grund (optional)
+                                </label>
+                                <textarea
+                                  value={newStatusReason}
+                                  onChange={(e) => setNewStatusReason(e.target.value)}
+                                  className="w-full px-4 py-2 border rounded-lg h-20"
+                                  placeholder="Grund für Abwesenheit..."
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    // Delete all time logs for this day
+                                    timeLogs.forEach(log => store.deleteTimeLog(log.id));
+                                    // Create absence
+                                    store.createAbsence({
+                                      user_id: selectedDay.userId,
+                                      date: selectedDay.date,
+                                      type: newStatusType,
+                                      reason: newStatusReason.trim() || '-',
+                                    });
+                                    setIsChangingStatus(false);
+                                    setShowDayDetailsModal(false);
+                                    setSelectedDay(null);
+                                  }}
+                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                                >
+                                  Zu Entschuldigt ändern
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsChangingStatus(false);
+                                    setNewStatusReason('');
+                                  }}
+                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : status === 'Entschuldigt' ? (
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600">
+                                Zu "Anwesend" ändern: Abwesenheitsmeldung wird gelöscht.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    // Delete the absence
+                                    if (dayAbsence) {
+                                      const absenceIndex = store.getAbsences().findIndex(a => a.id === dayAbsence.id);
+                                      if (absenceIndex !== -1) {
+                                        store.getAbsences().splice(absenceIndex, 1);
+                                      }
+                                    }
+                                    setIsChangingStatus(false);
+                                    setShowDayDetailsModal(false);
+                                    setSelectedDay(null);
+                                  }}
+                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                                >
+                                  Zu Anwesend ändern
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsChangingStatus(false);
+                                  }}
+                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
 
                     {/* Work Hours */}
@@ -319,19 +439,102 @@ export function Calendar() {
                         <div className="space-y-3">
                           {timeLogs.map((log) => {
                             const project = store.getProjects().find(p => p.id === log.project_id);
+                            const isEditing = editingTimeLogId === log.id;
+                            
                             return (
                               <div key={log.id} className="p-4 bg-gray-50 rounded-lg border">
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-900">{project?.name || 'Unbekanntes Projekt'}</div>
-                                    {log.notes && (
-                                      <p className="text-sm text-gray-600 mt-1">{log.notes}</p>
-                                    )}
+                                {isEditing ? (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Stunden
+                                      </label>
+                                      <input
+                                        type="number"
+                                        value={editTimeLogHours}
+                                        onChange={(e) => setEditTimeLogHours(parseFloat(e.target.value))}
+                                        min="0"
+                                        step="0.5"
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Notizen
+                                      </label>
+                                      <textarea
+                                        value={editTimeLogNotes}
+                                        onChange={(e) => setEditTimeLogNotes(e.target.value)}
+                                        className="w-full px-4 py-2 border rounded-lg h-20"
+                                        placeholder="Notizen zur Arbeitszeit..."
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => {
+                                          store.updateTimeLog(log.id, {
+                                            hours: editTimeLogHours,
+                                            notes: editTimeLogNotes
+                                          });
+                                          setEditingTimeLogId(null);
+                                          setShowDayDetailsModal(false);
+                                          setSelectedDay(null);
+                                        }}
+                                        className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
+                                      >
+                                        Speichern
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEditingTimeLogId(null);
+                                          setEditTimeLogHours(0);
+                                          setEditTimeLogNotes('');
+                                        }}
+                                        className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 text-sm"
+                                      >
+                                        Abbrechen
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          if (confirm('Möchten Sie diesen Zeiteintrag wirklich löschen?')) {
+                                            store.deleteTimeLog(log.id);
+                                            setEditingTimeLogId(null);
+                                            setShowDayDetailsModal(false);
+                                            setSelectedDay(null);
+                                          }
+                                        }}
+                                        className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm"
+                                      >
+                                        Löschen
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <div className="text-lg font-bold text-blue-600">{log.hours}h</div>
+                                ) : (
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">{project?.name || 'Unbekanntes Projekt'}</div>
+                                      {log.notes && (
+                                        <p className="text-sm text-gray-600 mt-1">{log.notes}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold text-blue-600">{log.hours}h</div>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          setEditingTimeLogId(log.id);
+                                          setEditTimeLogHours(log.hours);
+                                          setEditTimeLogNotes(log.notes || '');
+                                        }}
+                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Bearbeiten"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
+                                )}
                               </div>
                             );
                           })}
@@ -576,49 +779,130 @@ export function Calendar() {
       {isAdmin && (
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b">
-            <h2 className="text-xl font-bold text-gray-900">Alle Abwesenheitsmeldungen</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Alle Abwesenheitsmeldungen</h2>
+            
+            {/* Filter Controls */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mitarbeiter filtern
+                </label>
+                <select
+                  value={filterEmployee}
+                  onChange={(e) => setFilterEmployee(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="all">Alle Mitarbeiter</option>
+                  {store.getUsers().map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Monat filtern
+                </label>
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="all">Alle Monate</option>
+                  {(() => {
+                    // Get unique months from absences
+                    const allAbsences = store.getAbsences();
+                    const months = new Set<string>();
+                    allAbsences.forEach(absence => {
+                      const date = new Date(absence.date);
+                      const monthKey = format(date, 'yyyy-MM');
+                      months.add(monthKey);
+                    });
+                    return Array.from(months)
+                      .sort()
+                      .reverse()
+                      .map(monthKey => {
+                        const date = new Date(monthKey + '-01');
+                        return (
+                          <option key={monthKey} value={monthKey}>
+                            {format(date, 'MMMM yyyy', { locale: de })}
+                          </option>
+                        );
+                      });
+                  })()}
+                </select>
+              </div>
+            </div>
           </div>
+          
           <div className="p-6">
             {(() => {
-              const allAbsences = store.getAbsences();
+              let allAbsences = store.getAbsences();
+              
+              // Apply employee filter
+              if (filterEmployee !== 'all') {
+                allAbsences = allAbsences.filter(a => a.user_id === filterEmployee);
+              }
+              
+              // Apply month filter
+              if (filterMonth !== 'all') {
+                allAbsences = allAbsences.filter(a => {
+                  const absenceMonth = format(new Date(a.date), 'yyyy-MM');
+                  return absenceMonth === filterMonth;
+                });
+              }
+              
               return allAbsences.length === 0 ? (
-                <p className="text-gray-500">Keine Abwesenheitsmeldungen vorhanden</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Mitarbeiter</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Datum</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Typ</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700">Grund</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allAbsences
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((absence) => {
-                          const employee = store.getUserById(absence.user_id);
-                          return (
-                            <tr key={absence.id} className="border-b last:border-0">
-                              <td className="py-3 px-4 text-sm text-gray-900">
-                                {employee?.full_name}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-900">
-                                {format(new Date(absence.date), 'dd.MM.yyyy')}
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('Entschuldigt')}`}>
-                                  {absence.type}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-600">{absence.reason}</td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                <div className="text-center py-12">
+                  <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    {filterEmployee !== 'all' || filterMonth !== 'all' 
+                      ? 'Keine Abwesenheitsmeldungen für die ausgewählten Filter'
+                      : 'Keine Abwesenheitsmeldungen vorhanden'
+                    }
+                  </p>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-4 text-sm text-gray-600">
+                    {allAbsences.length} {allAbsences.length === 1 ? 'Eintrag' : 'Einträge'} gefunden
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium text-gray-700">Mitarbeiter</th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-700">Datum</th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-700">Typ</th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-700">Grund</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allAbsences
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((absence) => {
+                            const employee = store.getUserById(absence.user_id);
+                            return (
+                              <tr key={absence.id} className="border-b last:border-0 hover:bg-gray-50">
+                                <td className="py-3 px-4 text-sm text-gray-900">
+                                  {employee?.full_name}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-900">
+                                  {format(new Date(absence.date), 'dd.MM.yyyy')}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('Entschuldigt')}`}>
+                                    {absence.type}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-600">{absence.reason}</td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               );
             })()}
           </div>

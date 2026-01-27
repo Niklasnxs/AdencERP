@@ -258,6 +258,20 @@ class DataStore {
     return newTimeLog;
   }
 
+  updateTimeLog(id: string, updates: Partial<TimeLog>): TimeLog | null {
+    const index = this.timeLogs.findIndex(tl => tl.id === id);
+    if (index === -1) return null;
+    this.timeLogs[index] = { ...this.timeLogs[index], ...updates };
+    return this.timeLogs[index];
+  }
+
+  deleteTimeLog(id: string): boolean {
+    const index = this.timeLogs.findIndex(tl => tl.id === id);
+    if (index === -1) return false;
+    this.timeLogs.splice(index, 1);
+    return true;
+  }
+
   // Absence methods
   getAbsences(): Absence[] {
     return this.absences;
