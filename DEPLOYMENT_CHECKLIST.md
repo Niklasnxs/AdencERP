@@ -1,4 +1,4 @@
-# AdencERP Deployment Checklist for Server 3.27.88.221
+# AdencERP Deployment Checklist for Server 16.176.18.228
 
 ## ✅ Deployment Readiness Assessment
 
@@ -15,8 +15,8 @@ Your project **CAN** be deployed with `git pull` on your server, but there are *
 ```bash
 cd /var/www/AdencERP
 cat > .env << 'EOF'
-VITE_API_URL=http://3.27.88.221/api
-VITE_EMAIL_SERVICE_URL=http://3.27.88.221/api/send-email
+VITE_API_URL=http://16.176.18.228/api
+VITE_EMAIL_SERVICE_URL=http://16.176.18.228/api/send-email
 EOF
 ```
 
@@ -35,7 +35,7 @@ DB_NAME=adencerp
 PORT=3002
 NODE_ENV=production
 JWT_SECRET=YOUR_RANDOM_JWT_SECRET_MINIMUM_32_CHARS
-ALLOWED_ORIGINS=http://3.27.88.221,http://localhost:5173
+ALLOWED_ORIGINS=http://16.176.18.228,http://localhost:5173
 EOF
 ```
 
@@ -52,7 +52,7 @@ SMTP_SECURE=false
 SMTP_USER=niklas.schindhelm@adence.de
 SMTP_PASS=YOUR_EMAIL_PASSWORD_HERE
 PORT=3001
-ALLOWED_ORIGINS=http://3.27.88.221,http://localhost:5173
+ALLOWED_ORIGINS=http://16.176.18.228,http://localhost:5173
 EOF
 ```
 
@@ -135,8 +135,8 @@ sudo chown -R $USER:$USER /var/www/AdencERP
 **Frontend .env:**
 ```bash
 cat > .env << 'EOF'
-VITE_API_URL=http://3.27.88.221/api
-VITE_EMAIL_SERVICE_URL=http://3.27.88.221/api/send-email
+VITE_API_URL=http://16.176.18.228/api
+VITE_EMAIL_SERVICE_URL=http://16.176.18.228/api/send-email
 EOF
 ```
 
@@ -151,7 +151,7 @@ DB_NAME=adencerp
 PORT=3002
 NODE_ENV=production
 JWT_SECRET=generate_random_32_char_secret_here_abc123xyz
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 EOF
 ```
 
@@ -164,7 +164,7 @@ SMTP_SECURE=false
 SMTP_USER=niklas.schindhelm@adence.de
 SMTP_PASS=your_email_password_here
 PORT=3001
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 EOF
 ```
 
@@ -204,7 +204,7 @@ Paste this configuration:
 ```nginx
 server {
     listen 80;
-    server_name 3.27.88.221;
+    server_name 16.176.18.228;
     
     # Frontend
     location / {
@@ -299,7 +299,7 @@ After deployment, verify each component:
    ```
 
 4. **Frontend Access**
-   - Open browser: http://3.27.88.221
+   - Open browser: http://16.176.18.228
    - Should see login page
    - Try logging in with: admin@adenc.de / admin123
 
@@ -330,7 +330,7 @@ The migration script includes placeholder password hashes. After first deploymen
 **Symptoms**: Login fails, API errors in browser console
 
 **Fix**:
-1. Verify `.env` file exists in root with `VITE_API_URL=http://3.27.88.221/api`
+1. Verify `.env` file exists in root with `VITE_API_URL=http://16.176.18.228/api`
 2. Rebuild frontend: `npm run build`
 3. Check nginx is proxying correctly
 4. Verify backend is running: `pm2 list`
@@ -389,4 +389,4 @@ The project is **production-ready** with proper PostgreSQL database integration.
 - Admin: admin@adenc.de / admin123
 - Employee: max.mueller@adenc.de / emp123
 
-Access your app at: **http://3.27.88.221**
+Access your app at: **http://16.176.18.228**

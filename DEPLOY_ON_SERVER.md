@@ -1,4 +1,4 @@
-# EXACT DEPLOYMENT INSTRUCTIONS FOR SERVER 3.27.88.221
+# EXACT DEPLOYMENT INSTRUCTIONS FOR SERVER 16.176.18.228
 
 Copy and paste these commands EXACTLY on your server.
 
@@ -7,8 +7,8 @@ Copy and paste these commands EXACTLY on your server.
 ## STEP 1: SSH INTO YOUR SERVER
 
 ```bash
-ssh ubuntu@3.27.88.221
-# Or: ssh your-username@3.27.88.221
+ssh ubuntu@16.176.18.228
+# Or: ssh your-username@16.176.18.228
 ```
 
 ---
@@ -87,8 +87,8 @@ cd /var/www/AdencERP
 cd /var/www/AdencERP
 
 cat > .env << 'EOF'
-VITE_API_URL=http://3.27.88.221/api
-VITE_EMAIL_SERVICE_URL=http://3.27.88.221/api/send-email
+VITE_API_URL=http://16.176.18.228/api
+VITE_EMAIL_SERVICE_URL=http://16.176.18.228/api/send-email
 EOF
 
 # Verify file was created
@@ -97,8 +97,8 @@ cat .env
 
 **Expected output:**
 ```
-VITE_API_URL=http://3.27.88.221/api
-VITE_EMAIL_SERVICE_URL=http://3.27.88.221/api/send-email
+VITE_API_URL=http://16.176.18.228/api
+VITE_EMAIL_SERVICE_URL=http://16.176.18.228/api/send-email
 ```
 
 ---
@@ -117,7 +117,7 @@ DB_NAME=adencerp
 PORT=3002
 NODE_ENV=production
 JWT_SECRET=AdencERP2026_JWT_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION_32CHARS
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 EOF
 
 # Verify file was created
@@ -134,7 +134,7 @@ DB_NAME=adencerp
 PORT=3002
 NODE_ENV=production
 JWT_SECRET=AdencERP2026_JWT_SECRET_KEY_CHANGE_THIS_IN_PRODUCTION_32CHARS
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 ```
 
 ---
@@ -153,7 +153,7 @@ SMTP_SECURE=false
 SMTP_USER=niklas.schindhelm@adence.de
 SMTP_PASS=YOUR_EMAIL_PASSWORD
 PORT=3001
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 EOF
 
 # Edit the file to add your actual email password
@@ -170,7 +170,7 @@ SMTP_SECURE=false
 SMTP_USER=niklas.schindhelm@adence.de
 SMTP_PASS=your_actual_password_here
 PORT=3001
-ALLOWED_ORIGINS=http://3.27.88.221
+ALLOWED_ORIGINS=http://16.176.18.228
 ```
 
 ---
@@ -327,7 +327,7 @@ sudo nano /etc/nginx/sites-available/adencerp
 ```nginx
 server {
     listen 80;
-    server_name 3.27.88.221;
+    server_name 16.176.18.228;
     
     # Frontend (React build)
     location / {
@@ -460,7 +460,7 @@ Password: `AdencERP2026!SecureDB`
 ```
 
 ### 5. Access Application
-Open browser and go to: **http://3.27.88.221**
+Open browser and go to: **http://16.176.18.228**
 
 **Default Login:**
 - **Email:** admin@adenc.de
@@ -474,7 +474,7 @@ When you push changes to GitHub:
 
 ```bash
 # SSH into server
-ssh ubuntu@3.27.88.221
+ssh ubuntu@16.176.18.228
 
 # Go to project directory
 cd /var/www/AdencERP
@@ -586,7 +586,7 @@ sudo kill -9 <PID>
 
 ## ✅ DONE!
 
-Your application is now running at: **http://3.27.88.221**
+Your application is now running at: **http://16.176.18.228**
 
 **Login with:**
 - Email: `admin@adenc.de`

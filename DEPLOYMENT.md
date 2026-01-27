@@ -1,6 +1,6 @@
 # AdencERP Deployment Guide (Without Docker)
 
-Server: **http://3.27.88.221**
+Server: **http://16.176.18.228**
 
 ## Prerequisites on Server
 
@@ -78,7 +78,7 @@ DB_NAME=adencerp
 PORT=3002
 NODE_ENV=production
 JWT_SECRET=your_random_jwt_secret_here
-ALLOWED_ORIGINS=http://3.27.88.221,http://localhost:5173
+ALLOWED_ORIGINS=http://16.176.18.228,http://localhost:5173
 ```
 
 ```bash
@@ -135,7 +135,7 @@ Add this configuration:
 ```nginx
 server {
     listen 80;
-    server_name 3.27.88.221;
+    server_name 16.176.18.228;
     
     # Frontend (React build)
     location / {
@@ -180,7 +180,7 @@ sudo systemctl restart nginx
 
 ## Access the Application
 
-**URL:** http://3.27.88.221
+**URL:** http://16.176.18.228
 
 **Default Login:**
 - Admin: `admin@adenc.de` / `admin123`
