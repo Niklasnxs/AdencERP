@@ -20,6 +20,24 @@ cd AdencERP
 
 ### 2. Configure Environment Variables
 
+**A. Root .env file (optional for future backend):**
+
+Copy the example file and configure:
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+```env
+DB_USER=adencerp
+DB_PASSWORD=your_secure_password_here
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=adencerp
+```
+
+**B. Email service configuration:**
+
 The email service requires SMTP credentials. Make sure `email-service/.env` file exists with:
 
 ```env
@@ -71,11 +89,11 @@ Open your browser and navigate to:
 └────────┬────────┘
          │ /api/*
          ▼
-┌─────────────────┐
-│  Email Service   │
-│   Node.js API    │
-│   Port 3001      │
-└──────────────────┘
+┌─────────────────┐      ┌──────────────────┐
+│  Email Service   │      │   PostgreSQL DB  │
+│   Node.js API    │◄─────┤   Port 5432      │
+│   Port 3001      │      │   (Future)       │
+└──────────────────┘      └──────────────────┘
 ```
 
 ## Container Details
@@ -102,6 +120,18 @@ Open your browser and navigate to:
   - Health check endpoint
   - SMTP configuration
   - Auto-restart on failure
+
+### PostgreSQL Database Container
+- **Name:** `adencerp-database`
+- **Image:** postgres:15-alpine
+- **Port:** 5432:5432
+- **Technology:** PostgreSQL 15
+- **Features:**
+  - Persistent data storage (volume)
+  - Health checks
+  - Auto-restart on failure
+  - Ready for future backend migration
+- **Note:** Currently not used by frontend (uses client-side storage)
 
 ## Common Commands
 

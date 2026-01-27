@@ -11,6 +11,7 @@ services:
       - "80:80"
     depends_on:
       - email-service
+      - db
     restart: unless-stopped
     networks:
       - adencerp-network
@@ -35,10 +36,32 @@ services:
       retries: 3
       start_period: 40s
 
+  # PostgreSQL Database (for future backend migration)
+  db:
+    image: postgres:15-alpine
+    container_name: adencerp-database
+    environment:
+      POSTGRES_USER: ${DB_USER:-adencerp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: adencerp
+    volumes:
+      # Persistent data storage - prevents data loss during updates
+      - adencerp_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - adencerp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-adencerp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   adencerp-network:
     driver: bridge
 
-# Optional: Add volumes for persistent data if needed
-# volumes:
-#   adencerp-data:
+volumes:
+  adencerp_data:
+    driver: local
