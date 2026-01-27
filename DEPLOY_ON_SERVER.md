@@ -268,7 +268,25 @@ pm2 list
 
 ---
 
-## STEP 14: INSTALL FRONTEND DEPENDENCIES
+## STEP 14: PULL LATEST UPDATES FROM GITHUB
+
+```bash
+cd /var/www/AdencERP
+git pull origin main
+```
+
+**Expected output:**
+```
+Already up to date.
+OR
+Updating 7fe6d43..d515c70
+Fast-forward
+ ...
+```
+
+---
+
+## STEP 15: INSTALL FRONTEND DEPENDENCIES
 
 ```bash
 cd /var/www/AdencERP
@@ -277,7 +295,7 @@ npm install
 
 ---
 
-## STEP 15: BUILD FRONTEND
+## STEP 16: BUILD FRONTEND
 
 ```bash
 cd /var/www/AdencERP
@@ -298,7 +316,7 @@ ls -la dist/
 
 ---
 
-## STEP 16: CONFIGURE NGINX
+## STEP 17: CONFIGURE NGINX
 
 ```bash
 sudo nano /etc/nginx/sites-available/adencerp
@@ -343,7 +361,7 @@ server {
 
 ---
 
-## STEP 17: ENABLE NGINX SITE
+## STEP 18: ENABLE NGINX SITE
 
 ```bash
 # Create symlink
@@ -364,7 +382,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 
 ---
 
-## STEP 18: RESTART NGINX
+## STEP 19: RESTART NGINX
 
 ```bash
 sudo systemctl restart nginx
@@ -381,7 +399,7 @@ Press `q` to exit the status view.
 
 ---
 
-## STEP 19: SETUP PM2 STARTUP
+## STEP 20: SETUP PM2 STARTUP
 
 ```bash
 pm2 startup
@@ -395,7 +413,7 @@ pm2 save
 
 ---
 
-## STEP 20: CONFIGURE FIREWALL (OPTIONAL BUT RECOMMENDED)
+## STEP 21: CONFIGURE FIREWALL (OPTIONAL BUT RECOMMENDED)
 
 ```bash
 sudo ufw allow 22/tcp
