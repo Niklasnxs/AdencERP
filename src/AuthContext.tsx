@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from './types';
-import { store } from './store';
+import { authAPI, setToken, removeToken } from './services/api';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
   isEmployee: boolean;
@@ -23,19 +23,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (email: string, password: string): boolean => {
-    const authenticatedUser = store.authenticateUser(email, password);
-    if (authenticatedUser) {
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authAPI.login(email, password);
+      const authenticatedUser = response.user;
+      
+      // Store JWT token
+      setToken(response.token);
+      
+      // Store user in state and session
       setUser(authenticatedUser);
       sessionStorage.setItem('user', JSON.stringify(authenticatedUser));
+      
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
     setUser(null);
     sessionStorage.removeItem('user');
+    removeToken();
   };
 
   const isAdmin = user?.role === 'admin';

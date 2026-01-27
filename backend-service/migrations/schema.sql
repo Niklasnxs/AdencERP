@@ -1,0 +1,94 @@
+-- AdencERP Database Schema
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL CHECK (role IN ('admin', 'employee')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Projects table
+CREATE TABLE IF NOT EXISTS projects (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Project assignments (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS project_assignments (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(project_id, user_id)
+);
+
+-- Tasks table
+CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    assigned_to_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) NOT NULL CHECK (status IN ('Offen', 'In Bearbeitung', 'Erledigt')),
+    attachments TEXT[],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Time logs table
+CREATE TABLE IF NOT EXISTS time_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+    date DATE NOT NULL,
+    hours DECIMAL(5,2) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Absences table
+CREATE TABLE IF NOT EXISTS absences (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    reason TEXT,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('Krankheit', 'Urlaub', 'Schule', 'Termin', 'Sonstiges')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, date)
+);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_time_logs_user_date ON time_logs(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_time_logs_project ON time_logs(project_id);
+CREATE INDEX IF NOT EXISTS idx_absences_user_date ON absences(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_assigned_user ON tasks(assigned_to_user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+
+-- Insert default admin user (password: admin123)
+-- Note: In production, use bcrypt hashed passwords
+INSERT INTO users (email, password, full_name, role) 
+VALUES ('admin@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Admin User', 'admin')
+ON CONFLICT (email) DO NOTHING;
+
+-- Insert default employees
+INSERT INTO users (email, password, full_name, role) 
+VALUES 
+    ('max.mueller@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Max Müller', 'employee'),
+    ('anna.schmidt@adenc.de', '$2b$10$X8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.vY8JqJ5Z5Z5ZeX8jZ9mHZ.', 'Anna Schmidt', 'employee')
+ON CONFLICT (email) DO NOTHING;

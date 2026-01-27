@@ -31,3 +31,6 @@ dist-ssr
 
 # Email service credentials
 email-service/.env
+
+# Backend service credentials
+backend-service/.env

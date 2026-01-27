@@ -11,10 +11,33 @@ services:
       - "80:80"
     depends_on:
       - email-service
+      - backend-service
       - db
     restart: unless-stopped
     networks:
       - adencerp-network
+
+  # Backend API Service
+  backend-service:
+    build:
+      context: ./backend-service
+      dockerfile: Dockerfile
+    container_name: adencerp-backend
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./backend-service/.env
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - adencerp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Email Notification Service
   email-service:
@@ -36,7 +59,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL Database (for future backend migration)
+  # PostgreSQL Database
   db:
     image: postgres:15-alpine
     container_name: adencerp-database
