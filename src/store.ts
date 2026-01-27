@@ -281,6 +281,13 @@ class DataStore {
     return newAbsence;
   }
 
+  updateAbsence(id: string, updates: Partial<Absence>): Absence | null {
+    const index = this.absences.findIndex(a => a.id === id);
+    if (index === -1) return null;
+    this.absences[index] = { ...this.absences[index], ...updates };
+    return this.absences[index];
+  }
+
   // Notification methods
   getNotificationsByUser(userId: string): Notification[] {
     return this.notifications.filter(n => n.user_id === userId);

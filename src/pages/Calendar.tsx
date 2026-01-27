@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Calendar as CalendarIcon, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, X, Edit, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { AbsenceType } from '../types';
@@ -10,6 +10,13 @@ export function Calendar() {
   const { user, isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
+  const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<{ date: string; userId: string } | null>(null);
+  const [isEditingAbsence, setIsEditingAbsence] = useState(false);
+  const [isAddingRetroactiveAbsence, setIsAddingRetroactiveAbsence] = useState(false);
+  const [editAbsenceReason, setEditAbsenceReason] = useState('');
+  const [retroAbsenceType, setRetroAbsenceType] = useState<AbsenceType>('Krankheit');
+  const [retroAbsenceReason, setRetroAbsenceReason] = useState('');
   const [absenceDate, setAbsenceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
   const [absenceReason, setAbsenceReason] = useState('');
@@ -232,7 +239,15 @@ export function Calendar() {
                         } ${isDisabled ? 'opacity-50' : ''}`}
                       >
                         <div
-                          className={`w-6 h-6 rounded mx-auto ${statusColor}`}
+                          onClick={() => {
+                            if (isAdmin && !isDisabled) {
+                              setSelectedDay({ date: dateStr, userId: employee.id });
+                              setShowDayDetailsModal(true);
+                            }
+                          }}
+                          className={`w-6 h-6 rounded mx-auto ${statusColor} ${
+                            isAdmin && !isDisabled ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all' : ''
+                          }`}
                           title={isDisabled ? (isWeekendDay ? 'Wochenende' : 'Zukünftiger Tag') : status}
                         ></div>
                       </td>
@@ -244,6 +259,269 @@ export function Calendar() {
           </table>
         </div>
       </div>
+
+      {/* Day Details Modal (Admin Only) */}
+      {showDayDetailsModal && selectedDay && isAdmin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {(() => {
+              const employee = store.getUserById(selectedDay.userId);
+              const dayAttendance = attendance.find(
+                (a) => a.user_id === selectedDay.userId && a.date === selectedDay.date
+              );
+              const status = dayAttendance?.status || 'Anwesend';
+              const timeLogs = store.getTimeLogs().filter(
+                (log) => log.user_id === selectedDay.userId && log.date === selectedDay.date
+              );
+              const dayAbsence = store.getAbsences().find(
+                (abs) => abs.user_id === selectedDay.userId && abs.date === selectedDay.date
+              );
+
+              return (
+                <>
+                  {/* Header */}
+                  <div className="p-6 border-b flex items-center justify-between bg-gray-50">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">{employee?.full_name}</h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {format(new Date(selectedDay.date), 'EEEE, dd. MMMM yyyy', { locale: de })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowDayDetailsModal(false);
+                        setSelectedDay(null);
+                        setIsEditingAbsence(false);
+                        setEditAbsenceReason('');
+                      }}
+                      className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6">
+                    {/* Status Badge */}
+                    <div className="mb-6">
+                      <span className={`inline-flex px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
+                        Status: {status}
+                      </span>
+                    </div>
+
+                    {/* Work Hours */}
+                    {timeLogs.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <Clock className="w-5 h-5" />
+                          Arbeitszeit
+                        </h3>
+                        <div className="space-y-3">
+                          {timeLogs.map((log) => {
+                            const project = store.getProjects().find(p => p.id === log.project_id);
+                            return (
+                              <div key={log.id} className="p-4 bg-gray-50 rounded-lg border">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">{project?.name || 'Unbekanntes Projekt'}</div>
+                                    {log.notes && (
+                                      <p className="text-sm text-gray-600 mt-1">{log.notes}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-lg font-bold text-blue-600">{log.hours}h</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="pt-3 border-t">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-gray-900">Gesamt:</span>
+                              <span className="text-xl font-bold text-blue-600">
+                                {timeLogs.reduce((sum, log) => sum + log.hours, 0)}h
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Absence Information */}
+                    {dayAbsence && (
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">Abwesenheitsgrund</h3>
+                          {!isEditingAbsence && (
+                            <button
+                              onClick={() => {
+                                setIsEditingAbsence(true);
+                                setEditAbsenceReason(dayAbsence.reason);
+                              }}
+                              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Bearbeiten
+                            </button>
+                          )}
+                        </div>
+
+                        {isEditingAbsence ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editAbsenceReason}
+                              onChange={(e) => setEditAbsenceReason(e.target.value)}
+                              className="w-full px-4 py-2 border rounded-lg h-24"
+                              placeholder="Grund für Abwesenheit"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  store.updateAbsence(dayAbsence.id, { reason: editAbsenceReason });
+                                  setIsEditingAbsence(false);
+                                  setShowDayDetailsModal(false);
+                                  setSelectedDay(null);
+                                }}
+                                className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                              >
+                                Speichern
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsEditingAbsence(false);
+                                  setEditAbsenceReason('');
+                                }}
+                                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <div className="font-medium text-yellow-900 mb-1">{dayAbsence.type}</div>
+                            <p className="text-sm text-yellow-800">{dayAbsence.reason}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* No Data - Unexcused Absence */}
+                    {timeLogs.length === 0 && !dayAbsence && status === 'Unentschuldigt' && (
+                      <div>
+                        {!isAddingRetroactiveAbsence ? (
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <X className="w-8 h-8 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Unentschuldigt gefehlt</h3>
+                            <p className="text-gray-600 mb-4">
+                              Keine Zeiterfassung und keine Abwesenheitsmeldung für diesen Tag.
+                            </p>
+                            <button
+                              onClick={() => {
+                                setIsAddingRetroactiveAbsence(true);
+                                setRetroAbsenceType('Krankheit');
+                                setRetroAbsenceReason('');
+                              }}
+                              className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
+                            >
+                              Abwesenheit nachtragen
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Abwesenheit nachtragen</h3>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Typ *
+                              </label>
+                              <select
+                                value={retroAbsenceType}
+                                onChange={(e) => setRetroAbsenceType(e.target.value as AbsenceType)}
+                                className="w-full px-4 py-2 border rounded-lg"
+                                required
+                              >
+                                <option value="Krankheit">Krankheit</option>
+                                <option value="Urlaub">Urlaub</option>
+                                <option value="Schule">Schule</option>
+                                <option value="Sonstiges">Sonstiges</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Grund (optional)
+                              </label>
+                              <textarea
+                                value={retroAbsenceReason}
+                                onChange={(e) => setRetroAbsenceReason(e.target.value)}
+                                className="w-full px-4 py-2 border rounded-lg h-24"
+                                placeholder="Optionaler Grund für Abwesenheit..."
+                              />
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  store.createAbsence({
+                                    user_id: selectedDay.userId,
+                                    date: selectedDay.date,
+                                    type: retroAbsenceType,
+                                    reason: retroAbsenceReason.trim() || '-',
+                                  });
+                                  setShowDayDetailsModal(false);
+                                  setSelectedDay(null);
+                                  setIsAddingRetroactiveAbsence(false);
+                                  setRetroAbsenceReason('');
+                                }}
+                                className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                              >
+                                Speichern
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setIsAddingRetroactiveAbsence(false);
+                                  setRetroAbsenceReason('');
+                                }}
+                                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {timeLogs.length === 0 && !dayAbsence && status === 'Anwesend' && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">Keine Zeiteinträge für diesen Tag vorhanden.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-6 border-t bg-gray-50">
+                    <button
+                      onClick={() => {
+                        setShowDayDetailsModal(false);
+                        setSelectedDay(null);
+                        setIsEditingAbsence(false);
+                        setEditAbsenceReason('');
+                      }}
+                      className="w-full bg-gray-700 text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                    >
+                      Schließen
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* My Absences (Employee View) */}
       {!isAdmin && (

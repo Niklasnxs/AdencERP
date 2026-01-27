@@ -54,7 +54,7 @@ export interface TimeLog {
 }
 
 // Absence Types
-export type AbsenceType = 'Krankheit' | 'Termin' | 'Sonstiges';
+export type AbsenceType = 'Krankheit' | 'Urlaub' | 'Schule' | 'Sonstiges';
 
 export interface Absence {
   id: string;
