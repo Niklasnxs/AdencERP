@@ -1,5 +1,9 @@
 // API Service for Backend Communication
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+// In production (Docker), nginx proxies /api to backend-service
+// In development, use localhost:3002
+const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  import.meta.env.DEV ? 'http://localhost:3002/api' : '/api'
+);
 
 // Get token from localStorage
 const getToken = (): string | null => {
