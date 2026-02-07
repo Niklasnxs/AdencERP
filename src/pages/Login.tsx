@@ -77,13 +77,6 @@ export function Login() {
           </button>
         </form>
 
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 mb-2 font-medium">Demo-Zugangsdaten:</p>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p><strong>Admin:</strong> admin@adenc.de / admin123</p>
-            <p><strong>Mitarbeiter:</strong> max.mueller@adenc.de / emp123</p>
-          </div>
-        </div>
       </div>
     </div>
   );

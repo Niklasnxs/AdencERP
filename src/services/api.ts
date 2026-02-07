@@ -1,5 +1,5 @@
 // API Service for Backend Communication
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get token from localStorage
 const getToken = (): string | null => {
