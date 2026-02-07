@@ -27,7 +27,7 @@ export function TimeTracking() {
 
   const myTasks = store.getTasksByUser(user.id);
   const isEmployee = user.role === 'employee';
-  const showProjectFields = !isEmployee;
+  const showProjectFields = false;
   const internalOptions = ['ADence', 'Next Strategy AI'];
   const activeCustomers = customers.filter(c => c.is_active);
   const activeCustomerNames = new Set(activeCustomers.map(c => c.name));
@@ -228,7 +228,7 @@ export function TimeTracking() {
                 )}
               </div>
 
-              {isEmployee && (
+              {!showProjectFields && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Intern
