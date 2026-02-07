@@ -160,6 +160,18 @@ export function Projects() {
         )}
       </div>
 
+      {isAdmin && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
+            Work in progress
+          </div>
+          <p className="text-sm text-amber-800 mt-1">
+            Diese Seite befindet sich noch in Entwicklung.
+          </p>
+        </div>
+      )}
+
       {/* Create Project Modal */}
       {showNewProjectForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

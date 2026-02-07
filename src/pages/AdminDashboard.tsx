@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, FolderKanban, Users as UsersIcon, ChevronRight, ChevronDown } from 'lucide-react';
+import { Clock, FolderKanban, Users as UsersIcon, ChevronRight, ChevronDown, Download } from 'lucide-react';
+import { useMemo } from 'react';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -23,12 +24,52 @@ export function AdminDashboard() {
   const allTasks = store.getTasks();
   const allTimeLogs = store.getTimeLogs();
 
+  const csvData = useMemo(() => {
+    const header = ['Mitarbeiter', 'E-Mail', 'Datum', 'Kunde', 'Projekt', 'Aufgabe', 'Stunden', 'Beschreibung'];
+    const rows = allTimeLogs.map(log => {
+      const employee = allUsers.find(u => u.id.toString() === log.user_id.toString());
+      const project = log.project_id ? store.getProjectById(log.project_id) : undefined;
+      const task = log.task_id ? allTasks.find(t => t.id === log.task_id) : undefined;
+      return [
+        employee?.full_name || 'Unbekannt',
+        employee?.email || '',
+        format(new Date(log.date), 'dd.MM.yyyy'),
+        log.customer_name,
+        project?.name || 'Unbekanntes Projekt',
+        task?.title || '',
+        String(log.hours),
+        log.notes || ''
+      ];
+    });
+    return [header, ...rows];
+  }, [allTimeLogs, allUsers, allTasks]);
+
+  const handleExportCSV = () => {
+    const lines = csvData.map(row => row.map(field => {
+      if (field === null || field === undefined) return '';
+      const value = String(field).replace(/"/g, '""');
+      if (value.includes(';') || value.includes('"') || value.includes('\n')) {
+        return `"${value}"`;
+      }
+      return value;
+    }).join(';'));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `zeiterfassung_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Calculate statistics
   const employees = allUsers.filter(u => u.role === 'employee');
   
   const employeeStats = employees.map(emp => {
     const empTimeLogs = store.getTimeLogsByUser(emp.id);
-    const totalHours = empTimeLogs.reduce((sum, log) => sum + log.hours, 0);
+    const totalHours = empTimeLogs.reduce((sum, log) => sum + Number(log.hours), 0);
     
     // Group by project
     const projectBreakdown: {
@@ -40,32 +81,34 @@ export function AdminDashboard() {
     } = {};
     
     empTimeLogs.forEach(log => {
-      const project = store.getProjectById(log.project_id);
+      const project = log.project_id ? store.getProjectById(log.project_id) : undefined;
       const projectName = project?.name || 'Unbekanntes Projekt';
       
-      if (!projectBreakdown[log.project_id]) {
-        projectBreakdown[log.project_id] = {
+      const projectKey = log.project_id ? log.project_id.toString() : 'unassigned';
+
+      if (!projectBreakdown[projectKey]) {
+        projectBreakdown[projectKey] = {
           project: projectName,
           hours: 0,
           tasks: []
         };
       }
       
-      projectBreakdown[log.project_id].hours += log.hours;
+      projectBreakdown[projectKey].hours += Number(log.hours);
       
       // Group by task
       if (log.task_id) {
         const task = allTasks.find(t => t.id === log.task_id);
         const taskName = task?.title || 'Unbekannte Aufgabe';
         
-        const existingTask = projectBreakdown[log.project_id].tasks.find(t => t.task === taskName);
+        const existingTask = projectBreakdown[projectKey].tasks.find(t => t.task === taskName);
         if (existingTask) {
-          existingTask.hours += log.hours;
+          existingTask.hours += Number(log.hours);
           existingTask.logs.push(log);
         } else {
-          projectBreakdown[log.project_id].tasks.push({
+          projectBreakdown[projectKey].tasks.push({
             task: taskName,
-            hours: log.hours,
+            hours: Number(log.hours),
             logs: [log]
           });
         }
@@ -92,6 +135,13 @@ export function AdminDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-1">Systemübersicht und Zeiterfassung</p>
+        <button
+          onClick={handleExportCSV}
+          className="mt-4 inline-flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Zeiterfassung als CSV exportieren
+        </button>
       </div>
 
       {/* Summary Cards */}
@@ -141,7 +191,7 @@ export function AdminDashboard() {
             <div>
               <p className="text-sm font-medium text-gray-600">Gesamte Stunden</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {allTimeLogs.reduce((sum, log) => sum + log.hours, 0)}h
+                {allTimeLogs.reduce((sum, log) => sum + Number(log.hours), 0)}h
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -172,9 +222,8 @@ export function AdminDashboard() {
             </thead>
             <tbody>
               {employeeStats.map(stat => (
-                <>
+                <Fragment key={stat.employee.id}>
                   <tr
-                    key={stat.employee.id}
                     onClick={() => toggleEmployee(stat.employee.id)}
                     className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
                   >
@@ -209,7 +258,7 @@ export function AdminDashboard() {
                   
                   {/* Expanded Details */}
                   {expandedEmployee === stat.employee.id && (
-                    <tr className="bg-gray-50">
+                    <tr key={`${stat.employee.id}-details`} className="bg-gray-50">
                       <td colSpan={5} className="p-6">
                         <div className="space-y-4">
                           <h3 className="font-bold text-gray-900 mb-4">
@@ -220,7 +269,7 @@ export function AdminDashboard() {
                             <p className="text-gray-500">Keine Zeiteinträge vorhanden</p>
                           ) : (
                             stat.projectBreakdown.map((project, idx) => (
-                              <div key={idx} className="bg-white rounded-lg p-4 border">
+                              <div key={`${project.project}-${idx}`} className="bg-white rounded-lg p-4 border">
                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                     <FolderKanban className="w-4 h-4" />
@@ -234,7 +283,7 @@ export function AdminDashboard() {
                                 {project.tasks.length > 0 && (
                                   <div className="ml-6 space-y-2">
                                     {project.tasks.map((task, taskIdx) => (
-                                      <div key={taskIdx} className="flex items-start justify-between py-2 border-b last:border-0">
+                                      <div key={`${task.task}-${taskIdx}`} className="flex items-start justify-between py-2 border-b last:border-0">
                                         <div className="flex-1">
                                           <p className="font-medium text-gray-800">{task.task}</p>
                                           <div className="mt-1 space-y-1">
@@ -260,7 +309,7 @@ export function AdminDashboard() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

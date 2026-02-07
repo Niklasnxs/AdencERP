@@ -6,9 +6,9 @@ import { Dashboard } from './pages/Dashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Projects } from './pages/Projects';
 import { TimeTracking } from './pages/TimeTracking';
-import { EmployeeTimes } from './pages/EmployeeTimes';
 import { Calendar } from './pages/Calendar';
 import { Users } from './pages/Users';
+import { Customers } from './pages/Customers';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -34,9 +34,9 @@ function AppRoutes() {
         <Route path="/" element={<DashboardRoute />} />
         <Route path="/projekte" element={<Projects />} />
         <Route path="/zeiterfassung" element={<TimeTracking />} />
-        <Route path="/mitarbeiterzeiten" element={<EmployeeTimes />} />
         <Route path="/kalender" element={<Calendar />} />
         <Route path="/benutzer" element={<Users />} />
+        <Route path="/kunden" element={<Customers />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

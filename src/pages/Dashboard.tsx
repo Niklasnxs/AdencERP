@@ -1,6 +1,6 @@
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, CheckCircle, AlertCircle, FolderKanban } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, FolderKanban, Mail, MessageSquare, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -130,6 +130,76 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Access Links - For All Users */}
+      <div className="bg-white rounded-lg shadow mb-8">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">Schnellzugriff</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Email Access Button */}
+            <button
+              onClick={() => {
+                if (user.email_access) {
+                  alert(`Email Zugang:\n\n${user.email_access}`);
+                } else {
+                  alert('Keine Email-Zugangsdaten hinterlegt.');
+                }
+              }}
+              className="flex items-center gap-4 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+            >
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Mail className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Email Zugang</h3>
+                <p className="text-sm text-gray-600">Zugangsdaten anzeigen</p>
+              </div>
+            </button>
+
+            {/* Mattermost Button */}
+            <button
+              onClick={() => {
+                if (user.mattermost_url) {
+                  window.open(user.mattermost_url, '_blank');
+                } else {
+                  alert('Kein Mattermost-Link hinterlegt.');
+                }
+              }}
+              className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+            >
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Mattermost</h3>
+                <p className="text-sm text-gray-600">Team Chat öffnen</p>
+              </div>
+            </button>
+
+            {/* Zoom Button */}
+            <button
+              onClick={() => {
+                if (user.zoom_link) {
+                  window.open(user.zoom_link, '_blank');
+                } else {
+                  alert('Kein Zoom-Link hinterlegt.');
+                }
+              }}
+              className="flex items-center gap-4 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
+            >
+              <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Zoom Meeting</h3>
+                <p className="text-sm text-gray-600">Meeting beitreten</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow">

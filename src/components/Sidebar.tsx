@@ -2,11 +2,9 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   LayoutDashboard, 
-  FolderKanban, 
   Clock, 
   Calendar, 
-  Users, 
-  ClipboardList,
+  Users,
   LogOut,
   Menu,
   X
@@ -19,6 +17,7 @@ interface NavItem {
   path: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  highlight?: boolean;
 }
 
 export function Sidebar() {
@@ -32,20 +31,9 @@ export function Sidebar() {
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
-      label: 'Projekte',
-      path: '/projekte',
-      icon: <FolderKanban className="w-5 h-5" />,
-    },
-    {
       label: 'Zeiterfassung',
       path: '/zeiterfassung',
       icon: <Clock className="w-5 h-5" />,
-    },
-    {
-      label: 'Mitarbeiterzeiten',
-      path: '/mitarbeiterzeiten',
-      icon: <ClipboardList className="w-5 h-5" />,
-      adminOnly: true,
     },
     {
       label: 'Kalender',
@@ -55,6 +43,12 @@ export function Sidebar() {
     {
       label: 'Benutzer',
       path: '/benutzer',
+      icon: <Users className="w-5 h-5" />,
+      adminOnly: true,
+    },
+    {
+      label: 'Kunden',
+      path: '/kunden',
       icon: <Users className="w-5 h-5" />,
       adminOnly: true,
     },
@@ -137,7 +131,9 @@ export function Sidebar() {
                       'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
                       isActive
                         ? 'bg-blue-700 text-white'
-                        : 'text-blue-100 hover:bg-blue-800'
+                        : item.highlight
+                          ? 'bg-yellow-200 text-yellow-900 hover:bg-yellow-300'
+                          : 'text-blue-100 hover:bg-blue-800'
                     )
                   }
                 >

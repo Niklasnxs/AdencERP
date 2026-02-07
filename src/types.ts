@@ -11,6 +11,9 @@ export interface User {
   address?: string;
   birthday?: string; // YYYY-MM-DD format
   employment_type?: EmploymentType;
+  email_access?: string; // Email access information
+  mattermost_url?: string; // Mattermost login URL
+  zoom_link?: string; // Zoom meeting link
 }
 
 // Project Types
@@ -19,6 +22,14 @@ export interface Project {
   name: string;
   is_active: boolean;
   assigned_user_ids: string[]; // Users assigned to this project
+  created_at: string;
+}
+
+// Customer Types
+export interface Customer {
+  id: string;
+  name: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -49,8 +60,9 @@ export interface Task {
 export interface TimeLog {
   id: string;
   user_id: string;
-  project_id: string;
+  project_id?: string;
   task_id?: string;
+  customer_name: string;
   date: string; // YYYY-MM-DD format
   hours: number;
   notes?: string;
@@ -58,7 +70,13 @@ export interface TimeLog {
 }
 
 // Absence Types
-export type AbsenceType = 'Krankheit' | 'Urlaub' | 'Schule' | 'Sonstiges';
+export type AbsenceType =
+  | 'Krankheit'
+  | 'Urlaub'
+  | 'Homeoffice'
+  | 'Schule'
+  | 'Sonstiges'
+  | 'Unentschuldigt';
 
 export interface Absence {
   id: string;

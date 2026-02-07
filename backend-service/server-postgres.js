@@ -11,23 +11,8 @@ const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(express.json());
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:5174'];
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigins.join(','));
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
   credentials: true
 }));
 
@@ -95,7 +80,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at FROM users ORDER BY id'
+      'SELECT id, email, full_name, role, address, birthday, employment_type, created_at FROM users ORDER BY id'
     );
     res.json(result.rows);
   } catch (error) {
@@ -108,7 +93,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
 app.get('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, address, birthday, employment_type, created_at FROM users WHERE id = $1',
       [req.params.id]
     );
     
@@ -130,12 +115,12 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await db.query(
-      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at',
-      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, mattermost_url || null, zoom_link || null]
+      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, full_name, role, address, birthday, employment_type, created_at',
+      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -155,7 +140,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type } = req.body;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -189,23 +174,11 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       updates.push(`employment_type = $${paramCount++}`);
       values.push(employment_type || null);
     }
-    if (email_access !== undefined) {
-      updates.push(`email_access = $${paramCount++}`);
-      values.push(email_access || null);
-    }
-    if (mattermost_url !== undefined) {
-      updates.push(`mattermost_url = $${paramCount++}`);
-      values.push(mattermost_url || null);
-    }
-    if (zoom_link !== undefined) {
-      updates.push(`zoom_link = $${paramCount++}`);
-      values.push(zoom_link || null);
-    }
 
     values.push(req.params.id);
 
     const result = await db.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, created_at`,
       values
     );
 
@@ -538,15 +511,11 @@ app.get('/api/timelogs', authenticateToken, async (req, res) => {
 // Create time log
 app.post('/api/timelogs', authenticateToken, async (req, res) => {
   try {
-    const { user_id, project_id, task_id, date, hours, notes, customer_name } = req.body;
-
-    if (!customer_name) {
-      return res.status(400).json({ error: 'customer_name is required' });
-    }
+    const { user_id, project_id, task_id, date, hours, notes } = req.body;
 
     const result = await db.query(
-      'INSERT INTO time_logs (user_id, project_id, task_id, customer_name, date, hours, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [user_id, project_id, task_id || null, customer_name, date, hours, notes || null]
+      'INSERT INTO time_logs (user_id, project_id, task_id, date, hours, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [user_id, project_id, task_id || null, date, hours, notes || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -559,33 +528,11 @@ app.post('/api/timelogs', authenticateToken, async (req, res) => {
 // Update time log
 app.put('/api/timelogs/:id', authenticateToken, async (req, res) => {
   try {
-    const { hours, notes, customer_name } = req.body;
-    const updates = [];
-    const values = [];
-    let paramCount = 1;
-
-    if (hours !== undefined) {
-      updates.push(`hours = $${paramCount++}`);
-      values.push(hours);
-    }
-    if (notes !== undefined) {
-      updates.push(`notes = $${paramCount++}`);
-      values.push(notes);
-    }
-    if (customer_name !== undefined) {
-      updates.push(`customer_name = $${paramCount++}`);
-      values.push(customer_name);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-
-    values.push(req.params.id);
-
+    const { hours, notes } = req.body;
+    
     const result = await db.query(
-      `UPDATE time_logs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-      values
+      'UPDATE time_logs SET hours = COALESCE($1, hours), notes = COALESCE($2, notes) WHERE id = $3 RETURNING *',
+      [hours, notes, req.params.id]
     );
 
     if (result.rows.length === 0) {

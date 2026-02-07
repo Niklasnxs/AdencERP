@@ -38,6 +38,10 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      removeToken();
+      sessionStorage.removeItem('user');
+    }
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
@@ -84,6 +88,21 @@ export const projectsAPI = {
     }),
   update: (id: string, updates: any) =>
     apiRequest<any>(`/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+};
+
+// Customers API
+export const customersAPI = {
+  getAll: () => apiRequest<any[]>('/customers'),
+  create: (customerData: any) =>
+    apiRequest<any>('/customers', {
+      method: 'POST',
+      body: JSON.stringify(customerData),
+    }),
+  update: (id: string, updates: any) =>
+    apiRequest<any>(`/customers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     }),

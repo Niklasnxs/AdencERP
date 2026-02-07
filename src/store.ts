@@ -1,11 +1,12 @@
-import type { User, Project, Task, TimeLog, Absence, Notification, AttendanceStatus, DailyAttendance } from './types';
+import type { User, Project, Task, TimeLog, Absence, Notification, AttendanceStatus, DailyAttendance, Customer } from './types';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { 
   usersAPI, 
   projectsAPI, 
   tasksAPI, 
   timeLogsAPI, 
-  absencesAPI
+  absencesAPI,
+  customersAPI
 } from './services/api';
 
 // Data store using PostgreSQL API
@@ -13,6 +14,7 @@ class DataStore {
   // Cache for frequently accessed data (refreshed on each page load)
   private cachedUsers: User[] = [];
   private cachedProjects: Project[] = [];
+  private cachedCustomers: Customer[] = [];
   private cachedTasks: Task[] = [];
   private cachedTimeLogs: TimeLog[] = [];
   private cachedAbsences: Absence[] = [];
@@ -83,11 +85,50 @@ class DataStore {
     return this.cachedProjects;
   }
 
+  // Customer methods - synchronous with background refresh
+  getCustomers(): Customer[] {
+    customersAPI.getAll().then(customers => {
+      this.cachedCustomers = customers;
+    }).catch(console.error);
+
+    return this.cachedCustomers;
+  }
+
+  getActiveCustomers(): Customer[] {
+    return this.cachedCustomers.filter(c => c.is_active);
+  }
+
+  async createCustomer(customerData: Omit<Customer, 'id' | 'created_at'>): Promise<Customer> {
+    try {
+      const newCustomer = await customersAPI.create(customerData);
+      this.cachedCustomers.push(newCustomer);
+      return newCustomer;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  }
+
+  async updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | null> {
+    try {
+      const updatedCustomer = await customersAPI.update(id, updates);
+      const index = this.cachedCustomers.findIndex(c => c.id.toString() === id.toString());
+      if (index !== -1) {
+        this.cachedCustomers[index] = updatedCustomer;
+      }
+      return updatedCustomer;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      return null;
+    }
+  }
+
   getActiveProjects(): Project[] {
     return this.cachedProjects.filter(p => p.is_active);
   }
 
-  getProjectById(id: string): Project | undefined {
+  getProjectById(id?: string | null): Project | undefined {
+    if (id === undefined || id === null) return undefined;
     return this.cachedProjects.find(p => p.id.toString() === id.toString());
   }
 
@@ -126,7 +167,8 @@ class DataStore {
     return this.cachedTasks;
   }
 
-  getTasksByProject(projectId: string): Task[] {
+  getTasksByProject(projectId?: string | null): Task[] {
+    if (projectId === undefined || projectId === null) return [];
     return this.cachedTasks.filter(t => t.project_id.toString() === projectId.toString());
   }
 
@@ -334,10 +376,12 @@ class DataStore {
     );
     if (hasTimeLog) return 'Anwesend';
 
-    const hasAbsence = this.cachedAbsences.some(
+    const absence = this.cachedAbsences.find(
       a => a.user_id.toString() === userId.toString() && a.date === date
     );
-    if (hasAbsence) return 'Entschuldigt';
+    if (absence) {
+      return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
+    }
 
     const targetDate = startOfDay(parseISO(date));
     const today = startOfDay(new Date());
@@ -376,6 +420,7 @@ class DataStore {
       await Promise.all([
         this.getUsers(),
         this.getProjects(),
+        this.getCustomers(),
         this.getTasks(),
         this.getTimeLogs(),
         this.getAbsences(),

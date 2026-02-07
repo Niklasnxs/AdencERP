@@ -18,6 +18,9 @@ export function Users() {
     address: '',
     birthday: '',
     employment_type: '' as EmploymentType | '',
+    email_access: '',
+    mattermost_url: '',
+    zoom_link: '',
   });
 
   if (!isAdmin) {
@@ -45,6 +48,9 @@ export function Users() {
         address: formData.address || undefined,
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
+        email_access: formData.email_access || undefined,
+        mattermost_url: formData.mattermost_url || undefined,
+        zoom_link: formData.zoom_link || undefined,
       };
       
       // Only update password if provided
@@ -64,6 +70,9 @@ export function Users() {
         address: formData.address || undefined,
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
+        email_access: formData.email_access || undefined,
+        mattermost_url: formData.mattermost_url || undefined,
+        zoom_link: formData.zoom_link || undefined,
       });
     }
     
@@ -75,6 +84,9 @@ export function Users() {
       address: '',
       birthday: '',
       employment_type: '',
+      email_access: '',
+      mattermost_url: '',
+      zoom_link: '',
     });
     setShowForm(false);
     // Refresh user list after API call completes
@@ -91,6 +103,9 @@ export function Users() {
       address: user.address || '',
       birthday: user.birthday || '',
       employment_type: user.employment_type || '',
+      email_access: user.email_access || '',
+      mattermost_url: user.mattermost_url || '',
+      zoom_link: user.zoom_link || '',
     });
     setShowForm(true);
   };
@@ -132,6 +147,9 @@ export function Users() {
               address: '',
               birthday: '',
               employment_type: '',
+              email_access: '',
+              mattermost_url: '',
+              zoom_link: '',
             });
             setShowForm(true);
           }}
@@ -252,6 +270,61 @@ export function Users() {
                       <option value="internship">Praktikum</option>
                       <option value="minijob">Minijob</option>
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Access Links Section */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Zugangsdaten & Links</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email-Zugang
+                    </label>
+                    <textarea
+                      value={formData.email_access}
+                      onChange={(e) => setFormData({ ...formData, email_access: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Server: mail.example.com&#10;Benutzername: user@example.com&#10;Passwort: ..."
+                      rows={3}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Email-Zugangsinformationen (wird Mitarbeiter im Dashboard angezeigt)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mattermost URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.mattermost_url}
+                      onChange={(e) => setFormData({ ...formData, mattermost_url: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="https://mattermost.example.com/..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Link zum Mattermost Team Chat
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Zoom Meeting Link
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.zoom_link}
+                      onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="https://zoom.us/j/..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Persönlicher Zoom Meeting Link
+                    </p>
                   </div>
                 </div>
               </div>

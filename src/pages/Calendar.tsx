@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
+import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
 import { Calendar as CalendarIcon, Plus, X, Edit, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
-import type { AbsenceType } from '../types';
+import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Customer } from '../types';
 
 export function Calendar() {
   const { user, isAdmin } = useAuth();
@@ -18,20 +19,34 @@ export function Calendar() {
   const [editAbsenceReason, setEditAbsenceReason] = useState('');
   const [retroAbsenceType, setRetroAbsenceType] = useState<AbsenceType>('Krankheit');
   const [retroAbsenceReason, setRetroAbsenceReason] = useState('');
-  const [absenceDate, setAbsenceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [absenceStartDate, setAbsenceStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [absenceEndDate, setAbsenceEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [vacationEmployeeId, setVacationEmployeeId] = useState<string>('');
+  const [vacationStartDate, setVacationStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [vacationEndDate, setVacationEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [vacationReason, setVacationReason] = useState('');
+  const [showVacationModal, setShowVacationModal] = useState(false);
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [filterInternal, setFilterInternal] = useState<string>('all');
+  const [filterCustomer, setFilterCustomer] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [editingTimeLogId, setEditingTimeLogId] = useState<string | null>(null);
   const [editTimeLogHours, setEditTimeLogHours] = useState<number>(0);
   const [editTimeLogNotes, setEditTimeLogNotes] = useState<string>('');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
-  const [newStatusType, setNewStatusType] = useState<AbsenceType>('Krankheit');
-  const [newStatusReason, setNewStatusReason] = useState<string>('');
+  const [targetStatus, setTargetStatus] = useState<'Anwesend' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
+  const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krankheit');
+  const [targetReason, setTargetReason] = useState<string>('');
   const [newTimeLogHours, setNewTimeLogHours] = useState<number>(8);
   const [newTimeLogProject, setNewTimeLogProject] = useState<string>('');
   const [newTimeLogNotes, setNewTimeLogNotes] = useState<string>('');
+  const [usersData, setUsersData] = useState<User[]>([]);
+  const [projectsData, setProjectsData] = useState<Project[]>([]);
+  const [customersData, setCustomersData] = useState<Customer[]>([]);
+  const [timeLogsData, setTimeLogsData] = useState<TimeLog[]>([]);
+  const [absencesData, setAbsencesData] = useState<Absence[]>([]);
 
   if (!user) return null;
 
@@ -39,15 +54,69 @@ export function Calendar() {
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  const getEasterSunday = (year: number) => {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  };
+
+  const getHamburgHoliday = (date: Date) => {
+    const year = date.getFullYear();
+    const dateKey = format(date, 'yyyy-MM-dd');
+    const easter = getEasterSunday(year);
+    const holidayMap: Record<string, string> = {
+      [format(new Date(year, 0, 1), 'yyyy-MM-dd')]: 'Neujahr',
+      [format(new Date(year, 4, 1), 'yyyy-MM-dd')]: 'Tag der Arbeit',
+      [format(new Date(year, 9, 3), 'yyyy-MM-dd')]: 'Tag der Deutschen Einheit',
+      [format(new Date(year, 9, 31), 'yyyy-MM-dd')]: 'Reformationstag',
+      [format(new Date(year, 11, 25), 'yyyy-MM-dd')]: '1. Weihnachtstag',
+      [format(new Date(year, 11, 26), 'yyyy-MM-dd')]: '2. Weihnachtstag',
+    };
+
+    const goodFriday = new Date(easter);
+    goodFriday.setDate(goodFriday.getDate() - 2);
+    const easterMonday = new Date(easter);
+    easterMonday.setDate(easterMonday.getDate() + 1);
+    const ascensionDay = new Date(easter);
+    ascensionDay.setDate(ascensionDay.getDate() + 39);
+    const whitMonday = new Date(easter);
+    whitMonday.setDate(whitMonday.getDate() + 50);
+
+    holidayMap[format(goodFriday, 'yyyy-MM-dd')] = 'Karfreitag';
+    holidayMap[format(easterMonday, 'yyyy-MM-dd')] = 'Ostermontag';
+    holidayMap[format(ascensionDay, 'yyyy-MM-dd')] = 'Christi Himmelfahrt';
+    holidayMap[format(whitMonday, 'yyyy-MM-dd')] = 'Pfingstmontag';
+
+    return holidayMap[dateKey] || null;
+  };
+
   const handleSubmitAbsence = async (e: React.FormEvent) => {
     e.preventDefault();
-    await store.createAbsence({
-      user_id: user.id,
-      date: absenceDate,
-      type: absenceType,
-      reason: absenceReason,
-    });
-    setAbsenceDate(format(new Date(), 'yyyy-MM-dd'));
+    const start = new Date(absenceStartDate);
+    const end = new Date(absenceEndDate);
+    const days = eachDayOfInterval({ start, end });
+    for (const day of days) {
+      await store.createAbsence({
+        user_id: user.id,
+        date: format(day, 'yyyy-MM-dd'),
+        type: absenceType,
+        reason: absenceReason,
+      });
+    }
+    setAbsenceStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setAbsenceEndDate(format(new Date(), 'yyyy-MM-dd'));
     setAbsenceType('Krankheit');
     setAbsenceReason('');
     setShowAbsenceForm(false);
@@ -59,11 +128,152 @@ export function Calendar() {
     }, 500);
   };
 
-  const users = isAdmin ? store.getUsers() : [user];
-  const attendance = store.getAttendanceForPeriod(
-    format(monthStart, 'yyyy-MM-dd'),
-    format(monthEnd, 'yyyy-MM-dd')
-  );
+  const handleCreateVacationRange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vacationEmployeeId) {
+      alert('Bitte wählen Sie einen Mitarbeiter aus');
+      return;
+    }
+    const start = new Date(vacationStartDate);
+    const end = new Date(vacationEndDate);
+    const days = eachDayOfInterval({ start, end });
+    const failedDates: string[] = [];
+
+    for (const day of days) {
+      const dateString = format(day, 'yyyy-MM-dd');
+      try {
+        await store.createAbsence({
+          user_id: vacationEmployeeId,
+          date: dateString,
+          type: 'Urlaub',
+          reason: vacationReason.trim() || '-',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Absence already exists')) {
+          continue;
+        }
+        failedDates.push(dateString);
+      }
+    }
+
+    if (failedDates.length > 0) {
+      alert(`Einige Tage konnten nicht gespeichert werden: ${failedDates.join(', ')}`);
+    }
+
+    setVacationEmployeeId('');
+    setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setVacationReason('');
+    await store.initialize();
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 500);
+  };
+
+  useEffect(() => {
+    const normalizeDate = (value: string) => {
+      if (!value) return value;
+      return value.includes('T') ? value.split('T')[0] : value;
+    };
+
+    const loadCalendarData = async () => {
+      try {
+        const start = format(monthStart, 'yyyy-MM-dd');
+        const end = format(monthEnd, 'yyyy-MM-dd');
+        const [users, projects, customers, timeLogs, absences] = await Promise.all([
+          usersAPI.getAll(),
+          projectsAPI.getAll(),
+          customersAPI.getAll(),
+          timeLogsAPI.getAll({ start_date: start, end_date: end }),
+          absencesAPI.getAll({ start_date: start, end_date: end }),
+        ]);
+        const normalizedTimeLogs = timeLogs.map((log: TimeLog) => ({
+          ...log,
+          date: normalizeDate(log.date),
+        }));
+        const normalizedAbsences = absences.map((absence: Absence) => ({
+          ...absence,
+          date: normalizeDate(absence.date),
+        }));
+        setUsersData(users);
+        setProjectsData(projects);
+        setCustomersData(customers);
+        setTimeLogsData(normalizedTimeLogs);
+        setAbsencesData(normalizedAbsences);
+      } catch (error) {
+        console.error('Failed to load calendar data', error);
+      }
+    };
+    loadCalendarData();
+  }, [refreshKey, monthStart, monthEnd]);
+
+  const sameUserId = (a: string | number, b: string | number) => {
+    return a?.toString() === b?.toString();
+  };
+
+  const extractInternalClient = (notes?: string) => {
+    if (!notes) return '';
+    const line = notes
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => l.toLowerCase().startsWith('intern:'));
+    if (!line) return '';
+    return line.split(':').slice(1).join(':').trim();
+  };
+
+  const stripInternalClient = (notes?: string) => {
+    if (!notes) return '';
+    return notes
+      .split('\n')
+      .filter((l) => !l.trim().toLowerCase().startsWith('intern:'))
+      .join('\n')
+      .trim();
+  };
+
+  const filteredTimeLogs = timeLogsData.filter((log) => {
+    if (filterEmployee !== 'all' && !sameUserId(log.user_id, filterEmployee)) return false;
+    if (filterCustomer !== 'all' && log.customer_name !== filterCustomer) return false;
+    if (filterInternal !== 'all') {
+      const internal = extractInternalClient(log.notes);
+      return internal === filterInternal;
+    }
+    return true;
+  });
+
+  const internalTotals = ['ADence', 'Next Strategy AI'].map((name) => {
+    const hours = filteredTimeLogs
+      .filter((log) => extractInternalClient(log.notes) === name)
+      .reduce((sum, log) => sum + Number(log.hours), 0);
+    return { name, hours };
+  });
+
+  const customerTotals = filteredTimeLogs.reduce<Record<string, number>>((acc, log) => {
+    const key = log.customer_name || 'Unbekannt';
+    acc[key] = (acc[key] || 0) + Number(log.hours);
+    return acc;
+  }, {});
+
+  const customersSorted = Object.entries(customerTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, hours]) => ({ name, hours }));
+
+  const getAttendanceStatus = (userId: string, date: string): AttendanceStatus => {
+    const hasTimeLog = timeLogsData.some(
+      log => sameUserId(log.user_id, userId) && log.date === date
+    );
+    if (hasTimeLog) return 'Anwesend';
+
+    const absence = absencesData.find(
+      abs => sameUserId(abs.user_id, userId) && abs.date === date
+    );
+    if (absence) {
+      return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
+    }
+
+    return 'Anwesend';
+  };
+
+  const users = isAdmin ? usersData : [user];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,6 +285,23 @@ export function Calendar() {
         return 'bg-red-100 text-red-800 border-red-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getAbsenceTypeColor = (type: AbsenceType) => {
+    switch (type) {
+      case 'Krankheit':
+        return 'bg-red-500'; // Rot für Krankheit
+      case 'Urlaub':
+        return 'bg-blue-500'; // Blau für Urlaub
+      case 'Homeoffice':
+        return 'bg-purple-500'; // Lila für Homeoffice
+      case 'Schule':
+        return 'bg-orange-500'; // Orange für Schule
+      case 'Sonstiges':
+        return 'bg-gray-500'; // Grau für Sonstiges
+      default:
+        return 'bg-yellow-500'; // Gelb als Fallback
     }
   };
 
@@ -101,17 +328,32 @@ export function Calendar() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Abwesenheitsnotiz erstellen</h2>
             <form onSubmit={handleSubmitAbsence} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Datum
-                </label>
-                <input
-                  type="date"
-                  value={absenceDate}
-                  onChange={(e) => setAbsenceDate(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    value={absenceStartDate}
+                    onChange={(e) => setAbsenceStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    value={absenceEndDate}
+                    min={absenceStartDate}
+                    onChange={(e) => setAbsenceEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
@@ -125,7 +367,9 @@ export function Calendar() {
                   required
                 >
                   <option value="Krankheit">Krankheit</option>
-                  <option value="Termin">Termin</option>
+                  <option value="Urlaub">Urlaub</option>
+                  <option value="Homeoffice">Homeoffice</option>
+                  <option value="Schule">Schule</option>
                   <option value="Sonstiges">Sonstiges</option>
                 </select>
               </div>
@@ -163,21 +407,221 @@ export function Calendar() {
         </div>
       )}
 
+      {isAdmin && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowVacationModal(true)}
+            className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Urlaub eintragen (Zeitraum)
+          </button>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="font-bold text-gray-900 mb-4">Auswertung (Monat)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mitarbeiter
+              </label>
+              <select
+                value={filterEmployee}
+                onChange={(e) => setFilterEmployee(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="all">Alle</option>
+                {usersData.map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Intern
+              </label>
+              <select
+                value={filterInternal}
+                onChange={(e) => setFilterInternal(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="all">Alle</option>
+                <option value="ADence">ADence</option>
+                <option value="Next Strategy AI">Next Strategy AI</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kunde
+              </label>
+              <select
+                value={filterCustomer}
+                onChange={(e) => setFilterCustomer(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="all">Alle</option>
+                {customersData.filter(c => c.is_active).map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border p-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Intern (Stunden)</h4>
+              <div className="flex flex-wrap gap-2">
+                {internalTotals.map((item) => (
+                  <span key={item.name} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm">
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-blue-900">{item.hours}h</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-lg border p-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Kunden (Stunden)</h4>
+              {customersSorted.length === 0 ? (
+                <p className="text-sm text-gray-500">Keine Einträge im Zeitraum.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {customersSorted.map((c) => (
+                    <span key={c.name} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm">
+                      <span className="font-medium">{c.name}</span>
+                      <span className="text-emerald-900">{c.hours}h</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && showVacationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Urlaub eintragen (Zeitraum)</h2>
+              <button
+                onClick={() => setShowVacationModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateVacationRange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mitarbeiter
+                </label>
+                <select
+                  value={vacationEmployeeId}
+                  onChange={(e) => setVacationEmployeeId(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {usersData.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    value={vacationStartDate}
+                    onChange={(e) => setVacationStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    value={vacationEndDate}
+                    min={vacationStartDate}
+                    onChange={(e) => setVacationEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Grund (optional)
+                </label>
+                <textarea
+                  value={vacationReason}
+                  onChange={(e) => setVacationReason(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg h-20"
+                  placeholder="Optionaler Grund für Urlaub"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Urlaub speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVacationEmployeeId('');
+                    setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
+                    setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
+                    setVacationReason('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Legend */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="font-bold text-gray-900 mb-4">Legende</h3>
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-green-500"></div>
             <span className="text-sm text-gray-700">Anwesend</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-yellow-500"></div>
-            <span className="text-sm text-gray-700">Entschuldigt</span>
+            <div className="w-4 h-4 rounded bg-red-500"></div>
+            <span className="text-sm text-gray-700">Krankheit</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-500"></div>
-            <span className="text-sm text-gray-700">Unentschuldigt gefehlt</span>
+            <div className="w-4 h-4 rounded bg-blue-500"></div>
+            <span className="text-sm text-gray-700">Urlaub</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-purple-500"></div>
+            <span className="text-sm text-gray-700">Homeoffice</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-orange-500"></div>
+            <span className="text-sm text-gray-700">Schule</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-gray-500"></div>
+            <span className="text-sm text-gray-700">Sonstiges</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-red-500 border-2 border-red-700"></div>
+            <span className="text-sm text-gray-700">Unentschuldigt</span>
           </div>
         </div>
       </div>
@@ -233,21 +677,52 @@ export function Calendar() {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const isWeekendDay = isWeekend(day);
                     const isFutureDay = isFuture(startOfDay(day));
+                    const holidayName = getHamburgHoliday(day);
+                    const isHoliday = Boolean(holidayName);
                     const isDisabled = isWeekendDay || isFutureDay;
-                    
-                    const dayAttendance = attendance.find(
-                      (a) => a.user_id === employee.id && a.date === dateStr
+                    const dayTimeLogs = timeLogsData.filter(
+                      log => sameUserId(log.user_id, employee.id) && log.date === dateStr
                     );
-                    const status = dayAttendance?.status || 'Anwesend';
+                    const hasTimeLog = dayTimeLogs.length > 0;
                     
-                    // If weekend or future, show gray. Otherwise show status color
-                    const statusColor = isDisabled
-                      ? 'bg-gray-300'
-                      : status === 'Anwesend'
-                      ? 'bg-green-500'
-                      : status === 'Entschuldigt'
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500';
+                    const status = getAttendanceStatus(employee.id, dateStr);
+                    
+                    // Get absence to check type
+                    const dayAbsence = absencesData.find(
+                      (abs) => sameUserId(abs.user_id, employee.id) && abs.date === dateStr
+                    );
+                    
+                    // Determine color based on absence type or status
+                    let statusColor = 'bg-gray-300'; // Default for weekend/future
+                    let titleText = '';
+
+                    if (dayAbsence) {
+                      if (dayAbsence.type === 'Unentschuldigt') {
+                        statusColor = 'bg-red-600 ring-2 ring-red-900';
+                        titleText = 'Unentschuldigt gefehlt';
+                      } else {
+                        statusColor = getAbsenceTypeColor(dayAbsence.type);
+                        titleText = `Entschuldigt: ${dayAbsence.type}`;
+                      }
+                    } else if (hasTimeLog) {
+                      statusColor = 'bg-green-500';
+                      titleText = 'Anwesend';
+                    } else if (isHoliday) {
+                      statusColor = 'bg-gray-400';
+                      titleText = holidayName ? `Feiertag: ${holidayName}` : 'Feiertag';
+                    } else if (isDisabled) {
+                      statusColor = 'bg-gray-300';
+                      titleText = isWeekendDay ? 'Wochenende' : 'Zukünftiger Tag';
+                    } else if (status === 'Entschuldigt') {
+                      statusColor = 'bg-yellow-500';
+                      titleText = 'Entschuldigt';
+                    } else if (status === 'Unentschuldigt') {
+                      statusColor = 'bg-red-600 ring-2 ring-red-900';
+                      titleText = 'Unentschuldigt gefehlt';
+                    } else {
+                      statusColor = 'bg-green-500';
+                      titleText = 'Anwesend';
+                    }
 
                     return (
                       <td
@@ -266,8 +741,12 @@ export function Calendar() {
                           className={`w-6 h-6 rounded mx-auto ${statusColor} ${
                             isAdmin && !isDisabled ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all' : ''
                           }`}
-                          title={isDisabled ? (isWeekendDay ? 'Wochenende' : 'Zukünftiger Tag') : status}
-                        ></div>
+                          title={titleText}
+                        >
+                          {status === 'Unentschuldigt' && (
+                            <span className="text-white text-[10px] font-bold leading-none">✕</span>
+                          )}
+                        </div>
                       </td>
                     );
                   })}
@@ -283,16 +762,13 @@ export function Calendar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {(() => {
-              const employee = store.getUserById(selectedDay.userId);
-              const dayAttendance = attendance.find(
-                (a) => a.user_id === selectedDay.userId && a.date === selectedDay.date
+              const employee = usersData.find(u => u.id.toString() === selectedDay.userId.toString());
+              const status = getAttendanceStatus(selectedDay.userId, selectedDay.date);
+              const timeLogs = timeLogsData.filter(
+                (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
               );
-              const status = dayAttendance?.status || 'Anwesend';
-              const timeLogs = store.getTimeLogs().filter(
-                (log) => log.user_id === selectedDay.userId && log.date === selectedDay.date
-              );
-              const dayAbsence = store.getAbsences().find(
-                (abs) => abs.user_id === selectedDay.userId && abs.date === selectedDay.date
+              const dayAbsence = absencesData.find(
+                (abs) => sameUserId(abs.user_id, selectedDay.userId) && abs.date === selectedDay.date
               );
 
               return (
@@ -338,12 +814,25 @@ export function Calendar() {
                       
                       {/* Status Change Form */}
                       {isChangingStatus && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-gray-900 mb-3">Status ändern</h4>
-                          
-                          {(status === 'Entschuldigt' || status === 'Unentschuldigt') ? (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
+                          <h4 className="font-semibold text-gray-900">Status ändern</h4>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Neuer Status
+                            </label>
+                            <select
+                              value={targetStatus}
+                              onChange={(e) => setTargetStatus(e.target.value as typeof targetStatus)}
+                              className="w-full px-4 py-2 border rounded-lg"
+                            >
+                              <option value="Anwesend">Anwesend</option>
+                              <option value="Entschuldigt">Entschuldigt</option>
+                              <option value="Unentschuldigt">Unentschuldigt</option>
+                            </select>
+                          </div>
+
+                          {targetStatus === 'Anwesend' && (
                             <div className="space-y-3">
-                              <p className="text-sm text-gray-600 mb-3">Zu "Anwesend" ändern (Arbeitszeit eintragen):</p>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                   Projekt *
@@ -355,97 +844,56 @@ export function Calendar() {
                                   required
                                 >
                                   <option value="">Projekt auswählen...</option>
-                                  {store.getActiveProjects().map(p => (
+                                  {projectsData.filter(p => p.is_active).map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                   ))}
                                 </select>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Stunden *
-                                </label>
-                                <input
-                                  type="number"
-                                  value={newTimeLogHours}
-                                  onChange={(e) => setNewTimeLogHours(parseFloat(e.target.value))}
-                                  min="0"
-                                  step="0.5"
-                                  className="w-full px-4 py-2 border rounded-lg"
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Notizen (optional)
-                                </label>
-                                <textarea
-                                  value={newTimeLogNotes}
-                                  onChange={(e) => setNewTimeLogNotes(e.target.value)}
-                                  className="w-full px-4 py-2 border rounded-lg h-20"
-                                  placeholder="Beschreibung der Arbeit..."
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    if (!newTimeLogProject) {
-                                      alert('Bitte wählen Sie ein Projekt aus');
-                                      return;
-                                    }
-                                    // Delete the absence if exists
-                                    if (dayAbsence) {
-                                      const absenceIndex = store.getAbsences().findIndex(a => a.id === dayAbsence.id);
-                                      if (absenceIndex !== -1) {
-                                        store.getAbsences().splice(absenceIndex, 1);
-                                      }
-                                    }
-                                    // Create time log
-                                    store.createTimeLog({
-                                      user_id: selectedDay.userId,
-                                      project_id: newTimeLogProject,
-                                      date: selectedDay.date,
-                                      hours: newTimeLogHours,
-                                      notes: newTimeLogNotes || undefined,
-                                    });
-                                    setIsChangingStatus(false);
-                                    setNewTimeLogProject('');
-                                    setNewTimeLogHours(8);
-                                    setNewTimeLogNotes('');
-                                    setShowDayDetailsModal(false);
-                                    setSelectedDay(null);
-                                  }}
-                                  disabled={!newTimeLogProject}
-                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                >
-                                  Zu Anwesend ändern
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsChangingStatus(false);
-                                    setNewTimeLogProject('');
-                                    setNewTimeLogHours(8);
-                                    setNewTimeLogNotes('');
-                                  }}
-                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
-                                >
-                                  Abbrechen
-                                </button>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Stunden *
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={newTimeLogHours}
+                                    onChange={(e) => setNewTimeLogHours(parseFloat(e.target.value))}
+                                    min="0"
+                                    step="0.5"
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Notizen (optional)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newTimeLogNotes}
+                                    onChange={(e) => setNewTimeLogNotes(e.target.value)}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    placeholder="Kurzbeschreibung"
+                                  />
+                                </div>
                               </div>
                             </div>
-                          ) : status === 'Anwesend' ? (
+                          )}
+
+                          {targetStatus === 'Entschuldigt' && (
                             <div className="space-y-3">
-                              <p className="text-sm text-gray-600">Zu "Entschuldigt" ändern:</p>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                   Abwesenheitstyp
                                 </label>
                                 <select
-                                  value={newStatusType}
-                                  onChange={(e) => setNewStatusType(e.target.value as AbsenceType)}
+                                  value={targetAbsenceType}
+                                  onChange={(e) => setTargetAbsenceType(e.target.value as AbsenceType)}
                                   className="w-full px-4 py-2 border rounded-lg"
                                 >
                                   <option value="Krankheit">Krankheit</option>
                                   <option value="Urlaub">Urlaub</option>
+                                  <option value="Homeoffice">Homeoffice</option>
                                   <option value="Schule">Schule</option>
                                   <option value="Sonstiges">Sonstiges</option>
                                 </select>
@@ -455,77 +903,93 @@ export function Calendar() {
                                   Grund (optional)
                                 </label>
                                 <textarea
-                                  value={newStatusReason}
-                                  onChange={(e) => setNewStatusReason(e.target.value)}
+                                  value={targetReason}
+                                  onChange={(e) => setTargetReason(e.target.value)}
                                   className="w-full px-4 py-2 border rounded-lg h-20"
                                   placeholder="Grund für Abwesenheit..."
                                 />
                               </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    // Delete all time logs for this day
-                                    timeLogs.forEach(log => store.deleteTimeLog(log.id));
-                                    // Create absence
-                                    store.createAbsence({
-                                      user_id: selectedDay.userId,
-                                      date: selectedDay.date,
-                                      type: newStatusType,
-                                      reason: newStatusReason.trim() || '-',
-                                    });
-                                    setIsChangingStatus(false);
-                                    setShowDayDetailsModal(false);
-                                    setSelectedDay(null);
-                                  }}
-                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
-                                >
-                                  Zu Entschuldigt ändern
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsChangingStatus(false);
-                                    setNewStatusReason('');
-                                  }}
-                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
                             </div>
-                          ) : status === 'Entschuldigt' ? (
-                            <div className="space-y-3">
-                              <p className="text-sm text-gray-600">
-                                Zu "Anwesend" ändern: Abwesenheitsmeldung wird gelöscht.
-                              </p>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    // Delete the absence
-                                    if (dayAbsence) {
-                                      const absenceIndex = store.getAbsences().findIndex(a => a.id === dayAbsence.id);
-                                      if (absenceIndex !== -1) {
-                                        store.getAbsences().splice(absenceIndex, 1);
-                                      }
-                                    }
-                                    setIsChangingStatus(false);
-                                    setShowDayDetailsModal(false);
-                                    setSelectedDay(null);
-                                  }}
-                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
-                                >
-                                  Zu Anwesend ändern
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsChangingStatus(false);
-                                  }}
-                                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
+                          )}
+
+                          {targetStatus === 'Unentschuldigt' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Beschreibung *
+                              </label>
+                              <textarea
+                                value={targetReason}
+                                onChange={(e) => setTargetReason(e.target.value)}
+                                className="w-full px-4 py-2 border rounded-lg h-20"
+                                placeholder="Warum unentschuldigt?"
+                                required
+                              />
                             </div>
-                          ) : null}
+                          )}
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                if (targetStatus === 'Anwesend') {
+                                  if (!newTimeLogProject) {
+                                    alert('Bitte wählen Sie ein Projekt aus');
+                                    return;
+                                  }
+                                  if (dayAbsence) {
+                                    await store.deleteAbsence(dayAbsence.id);
+                                  }
+                                  await store.createTimeLog({
+                                    user_id: selectedDay.userId,
+                                    project_id: newTimeLogProject,
+                                    date: selectedDay.date,
+                                    hours: newTimeLogHours,
+                                    notes: newTimeLogNotes || undefined,
+                                  });
+                                } else if (targetStatus === 'Entschuldigt') {
+                                  timeLogs.forEach(log => store.deleteTimeLog(log.id));
+                                  await store.createAbsence({
+                                    user_id: selectedDay.userId,
+                                    date: selectedDay.date,
+                                    type: targetAbsenceType,
+                                    reason: targetReason.trim() || '-',
+                                  });
+                                } else {
+                                  if (!targetReason.trim()) {
+                                    alert('Bitte eine Beschreibung für Unentschuldigt eingeben');
+                                    return;
+                                  }
+                                  timeLogs.forEach(log => store.deleteTimeLog(log.id));
+                                  await store.createAbsence({
+                                    user_id: selectedDay.userId,
+                                    date: selectedDay.date,
+                                    type: 'Unentschuldigt',
+                                    reason: targetReason.trim(),
+                                  });
+                                }
+                                await store.initialize();
+                                setIsChangingStatus(false);
+                                setShowDayDetailsModal(false);
+                                setSelectedDay(null);
+                                setTargetReason('');
+                                setNewTimeLogProject('');
+                                setNewTimeLogHours(8);
+                                setNewTimeLogNotes('');
+                                setRefreshKey(prev => prev + 1);
+                              }}
+                              className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                            >
+                              Speichern
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsChangingStatus(false);
+                                setTargetReason('');
+                              }}
+                              className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                            >
+                              Abbrechen
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -539,7 +1003,10 @@ export function Calendar() {
                         </h3>
                         <div className="space-y-3">
                           {timeLogs.map((log) => {
-                            const project = store.getProjects().find(p => p.id === log.project_id);
+                            const project = projectsData.find(p => p.id === log.project_id);
+                            const internalClient = extractInternalClient(log.notes);
+                            const displayNotes = stripInternalClient(log.notes);
+                            const customerName = log.customer_name;
                             const isEditing = editingTimeLogId === log.id;
                             
                             return (
@@ -614,8 +1081,20 @@ export function Calendar() {
                                   <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1">
                                       <div className="font-medium text-gray-900">{project?.name || 'Unbekanntes Projekt'}</div>
-                                      {log.notes && (
-                                        <p className="text-sm text-gray-600 mt-1">{log.notes}</p>
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                        {customerName && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
+                                            Kunde: {customerName}
+                                          </span>
+                                        )}
+                                        {internalClient && (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
+                                            Intern: {internalClient}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {displayNotes && (
+                                        <p className="text-sm text-gray-600 mt-1">{displayNotes}</p>
                                       )}
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -711,7 +1190,7 @@ export function Calendar() {
                     )}
 
                     {/* No Data - Unexcused Absence */}
-                    {timeLogs.length === 0 && !dayAbsence && status === 'Unentschuldigt' && (
+                    {timeLogs.length === 0 && dayAbsence?.type === 'Unentschuldigt' && (
                       <div>
                         {!isAddingRetroactiveAbsence ? (
                           <div className="text-center py-8">
@@ -749,6 +1228,7 @@ export function Calendar() {
                               >
                                 <option value="Krankheit">Krankheit</option>
                                 <option value="Urlaub">Urlaub</option>
+                                <option value="Homeoffice">Homeoffice</option>
                                 <option value="Schule">Schule</option>
                                 <option value="Sonstiges">Sonstiges</option>
                               </select>
@@ -766,24 +1246,26 @@ export function Calendar() {
                               />
                             </div>
 
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  store.createAbsence({
-                                    user_id: selectedDay.userId,
-                                    date: selectedDay.date,
-                                    type: retroAbsenceType,
-                                    reason: retroAbsenceReason.trim() || '-',
-                                  });
-                                  setShowDayDetailsModal(false);
-                                  setSelectedDay(null);
-                                  setIsAddingRetroactiveAbsence(false);
-                                  setRetroAbsenceReason('');
-                                }}
-                                className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
-                              >
-                                Speichern
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={async () => {
+                                    await store.createAbsence({
+                                      user_id: selectedDay.userId,
+                                      date: selectedDay.date,
+                                      type: retroAbsenceType,
+                                      reason: retroAbsenceReason.trim() || '-',
+                                    });
+                                    await store.initialize();
+                                    setShowDayDetailsModal(false);
+                                    setSelectedDay(null);
+                                    setIsAddingRetroactiveAbsence(false);
+                                    setRetroAbsenceReason('');
+                                    setRefreshKey(prev => prev + 1);
+                                  }}
+                                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                                >
+                                  Speichern
+                                </button>
                               <button
                                 onClick={() => {
                                   setIsAddingRetroactiveAbsence(false);
@@ -835,7 +1317,7 @@ export function Calendar() {
           </div>
           <div className="p-6">
             {(() => {
-              const myAbsences = store.getAbsencesByUser(user.id);
+              const myAbsences = absencesData.filter(a => a.user_id === user.id);
               return myAbsences.length === 0 ? (
                 <div className="text-center py-12">
                   <CalendarIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -894,7 +1376,7 @@ export function Calendar() {
                   className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="all">Alle Mitarbeiter</option>
-                  {store.getUsers().map(u => (
+                  {usersData.map(u => (
                     <option key={u.id} value={u.id}>{u.full_name}</option>
                   ))}
                 </select>
@@ -912,7 +1394,7 @@ export function Calendar() {
                   <option value="all">Alle Monate</option>
                   {(() => {
                     // Get unique months from absences
-                    const allAbsences = store.getAbsences();
+                    const allAbsences = absencesData;
                     const months = new Set<string>();
                     allAbsences.forEach(absence => {
                       const date = new Date(absence.date);
@@ -938,7 +1420,7 @@ export function Calendar() {
           
           <div className="p-6">
             {(() => {
-              let allAbsences = store.getAbsences();
+              let allAbsences = absencesData;
               
               // Apply employee filter
               if (filterEmployee !== 'all') {
@@ -982,7 +1464,7 @@ export function Calendar() {
                         {allAbsences
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map((absence) => {
-                            const employee = store.getUserById(absence.user_id);
+                            const employee = usersData.find(u => u.id === absence.user_id);
                             return (
                               <tr key={absence.id} className="border-b last:border-0 hover:bg-gray-50">
                                 <td className="py-3 px-4 text-sm text-gray-900">
@@ -992,7 +1474,7 @@ export function Calendar() {
                                   {format(new Date(absence.date), 'dd.MM.yyyy')}
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('Entschuldigt')}`}>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${getAbsenceTypeColor(absence.type)}`}>
                                     {absence.type}
                                   </span>
                                 </td>
