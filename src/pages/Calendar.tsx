@@ -941,6 +941,7 @@ export function Calendar() {
                                   await store.createTimeLog({
                                     user_id: selectedDay.userId,
                                     project_id: newTimeLogProject,
+                                    customer_name: customersData.find(c => c.is_active)?.name || 'Ohne Kunde',
                                     date: selectedDay.date,
                                     hours: newTimeLogHours,
                                     notes: newTimeLogNotes || undefined,
