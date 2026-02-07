@@ -99,16 +99,14 @@ export function Sidebar() {
         )}
       >
         <div className="p-6 border-b border-blue-700 lg:block hidden">
-          <h1 className="text-2xl font-bold">AdencERP</h1>
-          <p className="text-sm text-blue-200 mt-1">TimeTrack & Attendance</p>
+          <h1 className="text-2xl font-bold">ADence Cockpit</h1>
         </div>
 
         {/* Mobile Header inside sidebar */}
         <div className="p-6 border-b border-blue-700 lg:hidden">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">AdencERP</h1>
-              <p className="text-sm text-blue-200 mt-1">TimeTrack & Attendance</p>
+              <h1 className="text-2xl font-bold">ADence Cockpit</h1>
             </div>
             <button
               onClick={closeMobileMenu}

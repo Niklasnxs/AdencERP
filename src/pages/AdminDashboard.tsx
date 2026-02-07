@@ -316,35 +316,6 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <a
-          href="/projekte"
-          className="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <FolderKanban className="w-8 h-8 text-blue-600 mb-3" />
-          <h3 className="font-bold text-gray-900 mb-1">Projekte verwalten</h3>
-          <p className="text-sm text-gray-600">Projekte und Aufgaben erstellen und zuweisen</p>
-        </a>
-        
-        <a
-          href="/benutzer"
-          className="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <UsersIcon className="w-8 h-8 text-green-600 mb-3" />
-          <h3 className="font-bold text-gray-900 mb-1">Benutzer verwalten</h3>
-          <p className="text-sm text-gray-600">Neue Mitarbeiter anlegen und verwalten</p>
-        </a>
-        
-        <a
-          href="/kalender"
-          className="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-        >
-          <Clock className="w-8 h-8 text-purple-600 mb-3" />
-          <h3 className="font-bold text-gray-900 mb-1">Anwesenheit prüfen</h3>
-          <p className="text-sm text-gray-600">Kalender und Abwesenheiten einsehen</p>
-        </a>
-      </div>
     </div>
   );
 }
