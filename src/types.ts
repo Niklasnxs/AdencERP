@@ -88,7 +88,7 @@ export interface Absence {
 }
 
 // Attendance Status Types
-export type AttendanceStatus = 'Anwesend' | 'Entschuldigt' | 'Unentschuldigt';
+export type AttendanceStatus = 'Anwesend' | 'Entschuldigt' | 'Unentschuldigt' | 'Sonstiges';
 
 export interface DailyAttendance {
   user_id: string;

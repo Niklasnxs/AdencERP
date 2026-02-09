@@ -270,7 +270,7 @@ export function Calendar() {
       return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
     }
 
-    return 'Anwesend';
+    return 'Sonstiges';
   };
 
   const users = isAdmin ? usersData : [user];
@@ -283,6 +283,8 @@ export function Calendar() {
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'Unentschuldigt':
         return 'bg-red-100 text-red-800 border-red-300';
+      case 'Sonstiges':
+        return 'bg-gray-100 text-gray-800 border-gray-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -719,6 +721,9 @@ export function Calendar() {
                     } else if (status === 'Unentschuldigt') {
                       statusColor = 'bg-red-600 ring-2 ring-red-900';
                       titleText = 'Unentschuldigt gefehlt';
+                    } else if (status === 'Sonstiges') {
+                      statusColor = 'bg-gray-500';
+                      titleText = 'Sonstiges';
                     } else {
                       statusColor = 'bg-green-500';
                       titleText = 'Anwesend';
@@ -1282,7 +1287,7 @@ export function Calendar() {
                       </div>
                     )}
 
-                    {timeLogs.length === 0 && !dayAbsence && status === 'Anwesend' && (
+                    {timeLogs.length === 0 && !dayAbsence && status === 'Sonstiges' && (
                       <div className="text-center py-8">
                         <p className="text-gray-500">Keine Zeiteinträge für diesen Tag vorhanden.</p>
                       </div>
