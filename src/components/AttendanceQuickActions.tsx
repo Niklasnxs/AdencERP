@@ -3,7 +3,14 @@ import { format } from 'date-fns';
 import { store } from '../store';
 import type { AbsenceType } from '../types';
 
-type QuickStatus = 'Anwesend' | 'Homeoffice' | 'Schule' | 'Krankheit';
+type QuickStatus =
+  | 'Anwesend'
+  | 'Krankheit'
+  | 'Urlaub'
+  | 'Homeoffice'
+  | 'Schule'
+  | 'Sonstiges'
+  | 'Unentschuldigt';
 
 function resolveStatus(userId: string, date: string): QuickStatus | null {
   const logs = store.getTimeLogsByUserAndDate(userId, date);
@@ -14,8 +21,42 @@ function resolveStatus(userId: string, date: string): QuickStatus | null {
   if (absence.type === 'Homeoffice') return 'Homeoffice';
   if (absence.type === 'Schule') return 'Schule';
   if (absence.type === 'Krankheit') return 'Krankheit';
+  if (absence.type === 'Urlaub') return 'Urlaub';
+  if (absence.type === 'Sonstiges') return 'Sonstiges';
+  if (absence.type === 'Unentschuldigt') return 'Unentschuldigt';
   return null;
 }
+
+const buttonColors: Record<QuickStatus, { active: string; inactive: string }> = {
+  Anwesend: {
+    active: 'bg-green-500 text-white border-green-500',
+    inactive: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100',
+  },
+  Krankheit: {
+    active: 'bg-red-500 text-white border-red-500',
+    inactive: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
+  },
+  Urlaub: {
+    active: 'bg-blue-500 text-white border-blue-500',
+    inactive: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+  },
+  Homeoffice: {
+    active: 'bg-purple-500 text-white border-purple-500',
+    inactive: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
+  },
+  Schule: {
+    active: 'bg-orange-500 text-white border-orange-500',
+    inactive: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
+  },
+  Sonstiges: {
+    active: 'bg-gray-500 text-white border-gray-500',
+    inactive: 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100',
+  },
+  Unentschuldigt: {
+    active: 'bg-red-700 text-white border-red-700',
+    inactive: 'bg-red-50 text-red-800 border-red-300 hover:bg-red-100',
+  },
+};
 
 export function AttendanceQuickActions({ userId }: { userId: string }) {
   const today = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -48,7 +89,10 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
         }
 
         const reason = todayAbsence?.reason || 'Per Dashboard gesetzt';
-        const absenceType = status as Extract<AbsenceType, 'Homeoffice' | 'Schule' | 'Krankheit'>;
+        const absenceType = status as Extract<
+          AbsenceType,
+          'Homeoffice' | 'Schule' | 'Krankheit' | 'Urlaub' | 'Sonstiges' | 'Unentschuldigt'
+        >;
 
         if (todayAbsence) {
           await store.updateAbsence(todayAbsence.id, { type: absenceType, reason });
@@ -68,7 +112,15 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
     }
   };
 
-  const buttons: QuickStatus[] = ['Anwesend', 'Homeoffice', 'Krankheit', 'Schule'];
+  const buttons: QuickStatus[] = [
+    'Anwesend',
+    'Krankheit',
+    'Urlaub',
+    'Homeoffice',
+    'Schule',
+    'Sonstiges',
+    'Unentschuldigt',
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-8">
@@ -85,8 +137,8 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
             disabled={savingStatus !== null}
             className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
               currentStatus === status
-                ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                ? buttonColors[status].active
+                : buttonColors[status].inactive
             } ${savingStatus !== null ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {status}
