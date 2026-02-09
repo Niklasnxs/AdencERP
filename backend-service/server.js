@@ -559,10 +559,23 @@ app.post('/api/timelogs', authenticateToken, async (req, res) => {
 // Update time log
 app.put('/api/timelogs/:id', authenticateToken, async (req, res) => {
   try {
-    const { hours, notes, customer_name } = req.body;
+    const { project_id, task_id, date, hours, notes, customer_name } = req.body;
     const updates = [];
     const values = [];
     let paramCount = 1;
+
+    if (project_id !== undefined) {
+      updates.push(`project_id = $${paramCount++}`);
+      values.push(project_id || null);
+    }
+    if (task_id !== undefined) {
+      updates.push(`task_id = $${paramCount++}`);
+      values.push(task_id || null);
+    }
+    if (date !== undefined) {
+      updates.push(`date = $${paramCount++}`);
+      values.push(date);
+    }
 
     if (hours !== undefined) {
       updates.push(`hours = $${paramCount++}`);

@@ -110,8 +110,9 @@ export function TimeTracking() {
   const handleEdit = (log: TimeLog) => {
     setEditingLog(log);
     const internalClient = extractInternalClient(log.notes);
+    const normalizedDate = log.date?.includes('T') ? log.date.split('T')[0] : log.date;
     setFormData({
-      date: log.date,
+      date: normalizedDate,
       customer_name: log.customer_name || '',
       internal_client: internalClient,
       project_id: log.project_id ? log.project_id.toString() : '',

@@ -528,11 +528,45 @@ app.post('/api/timelogs', authenticateToken, async (req, res) => {
 // Update time log
 app.put('/api/timelogs/:id', authenticateToken, async (req, res) => {
   try {
-    const { hours, notes } = req.body;
-    
+    const { project_id, task_id, date, hours, notes, customer_name } = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (project_id !== undefined) {
+      updates.push(`project_id = $${paramCount++}`);
+      values.push(project_id || null);
+    }
+    if (task_id !== undefined) {
+      updates.push(`task_id = $${paramCount++}`);
+      values.push(task_id || null);
+    }
+    if (date !== undefined) {
+      updates.push(`date = $${paramCount++}`);
+      values.push(date);
+    }
+    if (hours !== undefined) {
+      updates.push(`hours = $${paramCount++}`);
+      values.push(hours);
+    }
+    if (notes !== undefined) {
+      updates.push(`notes = $${paramCount++}`);
+      values.push(notes);
+    }
+    if (customer_name !== undefined) {
+      updates.push(`customer_name = $${paramCount++}`);
+      values.push(customer_name);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(req.params.id);
+
     const result = await db.query(
-      'UPDATE time_logs SET hours = COALESCE($1, hours), notes = COALESCE($2, notes) WHERE id = $3 RETURNING *',
-      [hours, notes, req.params.id]
+      `UPDATE time_logs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
     );
 
     if (result.rows.length === 0) {
