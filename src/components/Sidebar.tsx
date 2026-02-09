@@ -40,12 +40,6 @@ export function Sidebar() {
       icon: <Users className="w-5 h-5" />,
       adminOnly: true,
     },
-    {
-      label: 'Kunden',
-      path: '/kunden',
-      icon: <Users className="w-5 h-5" />,
-      adminOnly: true,
-    },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);

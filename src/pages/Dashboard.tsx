@@ -70,12 +70,13 @@ export function Dashboard() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-lg border border-amber-300 bg-amber-100 px-4 py-3 text-amber-900">
+      <div className="mb-8 rounded-xl border-2 border-amber-400 bg-amber-100 px-6 py-6 text-amber-900 shadow-sm">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <p className="text-sm font-medium">
-            Dieses Tool dient ab heute nur noch zur Erfassung von Anwesenheiten:
-            anwesend im Büro, Homeoffice, Schule, Krankheit oder sonstige Abwesenheit.
+          <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
+          <p className="text-base sm:text-lg font-semibold leading-relaxed">
+            Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
+            (Anwesend, Homeoffice, Schule, Krankheit, Urlaub oder Sonstiges). Zeiterfassung in Stunden
+            ist vorerst deaktiviert.
           </p>
         </div>
       </div>

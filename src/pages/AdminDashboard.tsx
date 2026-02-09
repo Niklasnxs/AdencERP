@@ -1,6 +1,6 @@
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, FolderKanban, Users as UsersIcon } from 'lucide-react';
+import { Clock, FolderKanban, Users as UsersIcon, AlertTriangle } from 'lucide-react';
 import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
 
 export function AdminDashboard() {
@@ -25,6 +25,17 @@ export function AdminDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-1">Systemübersicht</p>
+      </div>
+
+      <div className="mb-8 rounded-xl border-2 border-amber-400 bg-amber-100 px-6 py-6 text-amber-900 shadow-sm">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
+          <p className="text-base sm:text-lg font-semibold leading-relaxed">
+            Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
+            (Anwesend, Homeoffice, Schule, Krankheit, Urlaub oder Sonstiges). Zeiterfassung in Stunden
+            ist vorerst deaktiviert.
+          </p>
+        </div>
       </div>
 
       <AttendanceQuickActions userId={user.id} />
