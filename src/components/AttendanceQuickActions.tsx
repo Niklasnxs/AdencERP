@@ -71,9 +71,8 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
       const todayAbsence = store.getAbsenceByUserAndDate(userId, today);
 
       if (status === 'Anwesend') {
-        if (todayAbsence) {
-          await store.deleteAbsence(todayAbsence.id);
-        }
+        // Ensure no absence remains for this day so calendar color turns green.
+        await store.deleteAbsencesByUserAndDate(userId, today);
         if (todayLogs.length === 0) {
           await store.createTimeLog({
             user_id: userId,
