@@ -16,8 +16,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is stored in session storage
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -31,9 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store JWT token
       setToken(response.token);
       
-      // Store user in state and session
+      // Store user in state and persistent storage
       setUser(authenticatedUser);
-      sessionStorage.setItem('user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('user', JSON.stringify(authenticatedUser));
       
       return true;
     } catch (error) {
@@ -44,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
     removeToken();
   };
 

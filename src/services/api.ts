@@ -40,7 +40,7 @@ async function apiRequest<T>(
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       removeToken();
-      sessionStorage.removeItem('user');
+      localStorage.removeItem('user');
     }
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || `HTTP ${response.status}`);

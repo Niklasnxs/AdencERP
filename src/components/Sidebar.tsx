@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   LayoutDashboard, 
-  Clock, 
   Calendar, 
   Users,
   LogOut,
@@ -29,11 +28,6 @@ export function Sidebar() {
       label: 'Übersicht',
       path: '/',
       icon: <LayoutDashboard className="w-5 h-5" />,
-    },
-    {
-      label: 'Zeiterfassung',
-      path: '/zeiterfassung',
-      icon: <Clock className="w-5 h-5" />,
     },
     {
       label: 'Kalender',

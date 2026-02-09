@@ -5,7 +5,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Projects } from './pages/Projects';
-import { TimeTracking } from './pages/TimeTracking';
 import { Calendar } from './pages/Calendar';
 import { Users } from './pages/Users';
 import { Customers } from './pages/Customers';
@@ -33,7 +32,7 @@ function AppRoutes() {
       >
         <Route path="/" element={<DashboardRoute />} />
         <Route path="/projekte" element={<Projects />} />
-        <Route path="/zeiterfassung" element={<TimeTracking />} />
+        <Route path="/zeiterfassung" element={<Navigate to="/kalender" replace />} />
         <Route path="/kalender" element={<Calendar />} />
         <Route path="/benutzer" element={<Users />} />
         <Route path="/kunden" element={<Customers />} />

@@ -2,18 +2,22 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
-import { Calendar as CalendarIcon, Plus, X, Edit, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Edit, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Customer } from '../types';
 
 export function Calendar() {
   const { user, isAdmin } = useAuth();
+  type EmployeeDayStatus = 'Anwesend' | 'Homeoffice' | 'Schule' | 'Krankheit' | 'Sonstiges' | '';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
+  const [showEmployeeDayModal, setShowEmployeeDayModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ date: string; userId: string } | null>(null);
+  const [employeeDayStatus, setEmployeeDayStatus] = useState<EmployeeDayStatus>('');
+  const [employeeDayReason, setEmployeeDayReason] = useState('');
   const [isEditingAbsence, setIsEditingAbsence] = useState(false);
   const [isAddingRetroactiveAbsence, setIsAddingRetroactiveAbsence] = useState(false);
   const [editAbsenceReason, setEditAbsenceReason] = useState('');
@@ -29,8 +33,6 @@ export function Calendar() {
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
-  const [filterInternal, setFilterInternal] = useState<string>('all');
-  const [filterCustomer, setFilterCustomer] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [editingTimeLogId, setEditingTimeLogId] = useState<string | null>(null);
   const [editTimeLogHours, setEditTimeLogHours] = useState<number>(0);
@@ -230,33 +232,6 @@ export function Calendar() {
       .trim();
   };
 
-  const filteredTimeLogs = timeLogsData.filter((log) => {
-    if (filterEmployee !== 'all' && !sameUserId(log.user_id, filterEmployee)) return false;
-    if (filterCustomer !== 'all' && log.customer_name !== filterCustomer) return false;
-    if (filterInternal !== 'all') {
-      const internal = extractInternalClient(log.notes);
-      return internal === filterInternal;
-    }
-    return true;
-  });
-
-  const internalTotals = ['ADence', 'Next Strategy AI'].map((name) => {
-    const hours = filteredTimeLogs
-      .filter((log) => extractInternalClient(log.notes) === name)
-      .reduce((sum, log) => sum + Number(log.hours), 0);
-    return { name, hours };
-  });
-
-  const customerTotals = filteredTimeLogs.reduce<Record<string, number>>((acc, log) => {
-    const key = log.customer_name || 'Unbekannt';
-    acc[key] = (acc[key] || 0) + Number(log.hours);
-    return acc;
-  }, {});
-
-  const customersSorted = Object.entries(customerTotals)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, hours]) => ({ name, hours }));
-
   const getAttendanceStatus = (userId: string, date: string): AttendanceStatus => {
     const hasTimeLog = timeLogsData.some(
       log => sameUserId(log.user_id, userId) && log.date === date
@@ -314,15 +289,6 @@ export function Calendar() {
           <h1 className="text-3xl font-bold text-gray-900">Kalender</h1>
           <p className="text-gray-600 mt-1">Anwesenheit und Abwesenheitsmeldungen</p>
         </div>
-        {!isAdmin && (
-          <button
-            onClick={() => setShowAbsenceForm(true)}
-            className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Abwesenheit melden
-          </button>
-        )}
       </div>
 
       {showAbsenceForm && (
@@ -417,87 +383,6 @@ export function Calendar() {
           >
             Urlaub eintragen (Zeitraum)
           </button>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="font-bold text-gray-900 mb-4">Auswertung (Monat)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mitarbeiter
-              </label>
-              <select
-                value={filterEmployee}
-                onChange={(e) => setFilterEmployee(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="all">Alle</option>
-                {usersData.map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Intern
-              </label>
-              <select
-                value={filterInternal}
-                onChange={(e) => setFilterInternal(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="all">Alle</option>
-                <option value="ADence">ADence</option>
-                <option value="Next Strategy AI">Next Strategy AI</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kunde
-              </label>
-              <select
-                value={filterCustomer}
-                onChange={(e) => setFilterCustomer(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="all">Alle</option>
-                {customersData.filter(c => c.is_active).map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Intern (Stunden)</h4>
-              <div className="flex flex-wrap gap-2">
-                {internalTotals.map((item) => (
-                  <span key={item.name} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm">
-                    <span className="font-medium">{item.name}</span>
-                    <span className="text-blue-900">{item.hours}h</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-lg border p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Kunden (Stunden)</h4>
-              {customersSorted.length === 0 ? (
-                <p className="text-sm text-gray-500">Keine Einträge im Zeitraum.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {customersSorted.map((c) => (
-                    <span key={c.name} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm">
-                      <span className="font-medium">{c.name}</span>
-                      <span className="text-emerald-900">{c.hours}h</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -741,10 +626,29 @@ export function Calendar() {
                             if (isAdmin && !isDisabled) {
                               setSelectedDay({ date: dateStr, userId: employee.id });
                               setShowDayDetailsModal(true);
+                            } else if (!isAdmin && !isDisabled) {
+                              const employeeAbsence = absencesData.find(
+                                (abs) => sameUserId(abs.user_id, employee.id) && abs.date === dateStr
+                              );
+                              const employeeHasTimeLog = timeLogsData.some(
+                                (log) => sameUserId(log.user_id, employee.id) && log.date === dateStr
+                              );
+
+                              let initialStatus: EmployeeDayStatus = '';
+                              if (employeeAbsence?.type === 'Homeoffice') initialStatus = 'Homeoffice';
+                              if (employeeAbsence?.type === 'Schule') initialStatus = 'Schule';
+                              if (employeeAbsence?.type === 'Krankheit') initialStatus = 'Krankheit';
+                              if (employeeAbsence?.type === 'Sonstiges') initialStatus = 'Sonstiges';
+                              if (employeeHasTimeLog) initialStatus = 'Anwesend';
+
+                              setSelectedDay({ date: dateStr, userId: employee.id });
+                              setEmployeeDayStatus(initialStatus);
+                              setEmployeeDayReason(employeeAbsence?.reason || '');
+                              setShowEmployeeDayModal(true);
                             }
                           }}
                           className={`w-6 h-6 rounded mx-auto ${statusColor} ${
-                            isAdmin && !isDisabled ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all' : ''
+                            !isDisabled ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all' : ''
                           }`}
                           title={titleText}
                         >
@@ -1311,6 +1215,142 @@ export function Calendar() {
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Employee Day Status Modal */}
+      {showEmployeeDayModal && selectedDay && !isAdmin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg">
+            <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Tagesstatus eintragen</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {format(new Date(selectedDay.date), 'EEEE, dd. MMMM yyyy', { locale: de })}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEmployeeDayModal(false);
+                  setSelectedDay(null);
+                  setEmployeeDayStatus('');
+                  setEmployeeDayReason('');
+                }}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {(['Anwesend', 'Homeoffice', 'Schule', 'Krankheit', 'Sonstiges'] as const).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setEmployeeDayStatus(status)}
+                      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        employeeDayStatus === status
+                          ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {employeeDayStatus && employeeDayStatus !== 'Anwesend' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Grund (optional)
+                  </label>
+                  <textarea
+                    value={employeeDayReason}
+                    onChange={(e) => setEmployeeDayReason(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg h-20"
+                    placeholder="Optionaler Grund"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!selectedDay || !employeeDayStatus) {
+                    alert('Bitte einen Status auswählen.');
+                    return;
+                  }
+
+                  const dayAbsences = absencesData.filter(
+                    (abs) => sameUserId(abs.user_id, selectedDay.userId) && abs.date === selectedDay.date
+                  );
+                  const dayTimeLogs = timeLogsData.filter(
+                    (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
+                  );
+
+                  if (employeeDayStatus === 'Anwesend') {
+                    for (const absence of dayAbsences) {
+                      await store.deleteAbsence(absence.id);
+                    }
+                    if (dayTimeLogs.length === 0) {
+                      await store.createTimeLog({
+                        user_id: selectedDay.userId,
+                        customer_name: 'Statusmeldung',
+                        date: selectedDay.date,
+                        hours: 0,
+                        notes: 'Tagesstatus: Anwesend',
+                      });
+                    }
+                  } else {
+                    for (const log of dayTimeLogs) {
+                      await store.deleteTimeLog(log.id);
+                    }
+                    const reason = employeeDayReason.trim() || '-';
+                    const absenceType = employeeDayStatus as Extract<AbsenceType, 'Homeoffice' | 'Schule' | 'Krankheit' | 'Sonstiges'>;
+
+                    if (dayAbsences.length > 0) {
+                      await store.updateAbsence(dayAbsences[0].id, { type: absenceType, reason });
+                    } else {
+                      await store.createAbsence({
+                        user_id: selectedDay.userId,
+                        date: selectedDay.date,
+                        type: absenceType,
+                        reason,
+                      });
+                    }
+                  }
+
+                  await store.initialize();
+                  setRefreshKey(prev => prev + 1);
+                  setShowEmployeeDayModal(false);
+                  setSelectedDay(null);
+                  setEmployeeDayStatus('');
+                  setEmployeeDayReason('');
+                }}
+                className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+              >
+                Speichern
+              </button>
+              <button
+                onClick={() => {
+                  setShowEmployeeDayModal(false);
+                  setSelectedDay(null);
+                  setEmployeeDayStatus('');
+                  setEmployeeDayReason('');
+                }}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+              >
+                Abbrechen
+              </button>
+            </div>
           </div>
         </div>
       )}
