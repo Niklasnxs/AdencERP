@@ -120,19 +120,19 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-8">
-      <h2 className="text-lg font-bold text-gray-900 mb-1">Anwesenheit heute</h2>
-      <p className="text-sm text-gray-600 mb-4">
+    <div className="bg-white rounded-xl shadow p-8 mb-8 border border-gray-100">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Anwesenheit heute</h2>
+      <p className="text-base text-gray-600 mb-6">
         Status für {format(new Date(today), 'dd.MM.yyyy')} direkt setzen
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {buttons.map((status) => (
           <button
             key={status}
             type="button"
             onClick={() => setTodayStatus(status)}
             disabled={savingStatus !== null}
-            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+            className={`px-5 py-3 rounded-lg border text-base font-semibold transition-colors ${
               currentStatus === status
                 ? buttonColors[status].active
                 : buttonColors[status].inactive
