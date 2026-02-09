@@ -10,10 +10,6 @@ export function Dashboard() {
 
   if (!user) return null;
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todayTimeLogs = store.getTimeLogsByUserAndDate(user.id, today);
-  const totalHoursToday = todayTimeLogs.reduce((sum, log) => sum + log.hours, 0);
-
   const myTasks = store.getTasksByUser(user.id);
   const inProgressTasks = myTasks.filter(t => t.status === 'In Bearbeitung');
   const completedTasks = myTasks.filter(t => t.status === 'Erledigt');
@@ -95,19 +91,7 @@ export function Dashboard() {
         </div>
       ) : (
         // Employee Dashboard
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Stunden heute</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalHoursToday}h</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-600">
             <div className="flex items-center justify-between">
               <div>

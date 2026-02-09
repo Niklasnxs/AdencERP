@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
-import { Calendar as CalendarIcon, X, Edit, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Edit } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Customer } from '../types';
@@ -34,19 +34,13 @@ export function Calendar() {
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
-  const [editingTimeLogId, setEditingTimeLogId] = useState<string | null>(null);
-  const [editTimeLogHours, setEditTimeLogHours] = useState<number>(0);
-  const [editTimeLogNotes, setEditTimeLogNotes] = useState<string>('');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [targetStatus, setTargetStatus] = useState<'Anwesend' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
   const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krankheit');
   const [targetReason, setTargetReason] = useState<string>('');
-  const [newTimeLogHours, setNewTimeLogHours] = useState<number>(8);
-  const [newTimeLogProject, setNewTimeLogProject] = useState<string>('');
-  const [newTimeLogNotes, setNewTimeLogNotes] = useState<string>('');
   const [usersData, setUsersData] = useState<User[]>([]);
-  const [projectsData, setProjectsData] = useState<Project[]>([]);
-  const [customersData, setCustomersData] = useState<Customer[]>([]);
+  const [_projectsData, setProjectsData] = useState<Project[]>([]);
+  const [_customersData, setCustomersData] = useState<Customer[]>([]);
   const [timeLogsData, setTimeLogsData] = useState<TimeLog[]>([]);
   const [absencesData, setAbsencesData] = useState<Absence[]>([]);
 
@@ -211,25 +205,6 @@ export function Calendar() {
 
   const sameUserId = (a: string | number, b: string | number) => {
     return a?.toString() === b?.toString();
-  };
-
-  const extractInternalClient = (notes?: string) => {
-    if (!notes) return '';
-    const line = notes
-      .split('\n')
-      .map((l) => l.trim())
-      .find((l) => l.toLowerCase().startsWith('intern:'));
-    if (!line) return '';
-    return line.split(':').slice(1).join(':').trim();
-  };
-
-  const stripInternalClient = (notes?: string) => {
-    if (!notes) return '';
-    return notes
-      .split('\n')
-      .filter((l) => !l.trim().toLowerCase().startsWith('intern:'))
-      .join('\n')
-      .trim();
   };
 
   const getAttendanceStatus = (userId: string, date: string): AttendanceStatus => {
@@ -740,55 +715,6 @@ export function Calendar() {
                             </select>
                           </div>
 
-                          {targetStatus === 'Anwesend' && (
-                            <div className="space-y-3">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Projekt *
-                                </label>
-                                <select
-                                  value={newTimeLogProject}
-                                  onChange={(e) => setNewTimeLogProject(e.target.value)}
-                                  className="w-full px-4 py-2 border rounded-lg"
-                                  required
-                                >
-                                  <option value="">Projekt auswählen...</option>
-                                  {projectsData.filter(p => p.is_active).map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Stunden *
-                                  </label>
-                                  <input
-                                    type="number"
-                                    value={newTimeLogHours}
-                                    onChange={(e) => setNewTimeLogHours(parseFloat(e.target.value))}
-                                    min="0"
-                                    step="0.5"
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                    required
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Notizen (optional)
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={newTimeLogNotes}
-                                    onChange={(e) => setNewTimeLogNotes(e.target.value)}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                    placeholder="Kurzbeschreibung"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
                           {targetStatus === 'Entschuldigt' && (
                             <div className="space-y-3">
                               <div>
@@ -840,21 +766,19 @@ export function Calendar() {
                             <button
                               onClick={async () => {
                                 if (targetStatus === 'Anwesend') {
-                                  if (!newTimeLogProject) {
-                                    alert('Bitte wählen Sie ein Projekt aus');
-                                    return;
+                                  await store.deleteAbsencesByUserAndDate(selectedDay.userId, selectedDay.date);
+                                  const dayTimeLogs = timeLogsData.filter(
+                                    (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
+                                  );
+                                  if (dayTimeLogs.length === 0) {
+                                    await store.createTimeLog({
+                                      user_id: selectedDay.userId,
+                                      customer_name: 'Statusmeldung',
+                                      date: selectedDay.date,
+                                      hours: 0,
+                                      notes: 'Tagesstatus: Anwesend',
+                                    });
                                   }
-                                  if (dayAbsence) {
-                                    await store.deleteAbsence(dayAbsence.id);
-                                  }
-                                  await store.createTimeLog({
-                                    user_id: selectedDay.userId,
-                                    project_id: newTimeLogProject,
-                                    customer_name: customersData.find(c => c.is_active)?.name || 'Ohne Kunde',
-                                    date: selectedDay.date,
-                                    hours: newTimeLogHours,
-                                    notes: newTimeLogNotes || undefined,
-                                  });
                                 } else if (targetStatus === 'Entschuldigt') {
                                   timeLogs.forEach(log => store.deleteTimeLog(log.id));
                                   await store.createAbsence({
@@ -881,9 +805,6 @@ export function Calendar() {
                                 setShowDayDetailsModal(false);
                                 setSelectedDay(null);
                                 setTargetReason('');
-                                setNewTimeLogProject('');
-                                setNewTimeLogHours(8);
-                                setNewTimeLogNotes('');
                                 setRefreshKey(prev => prev + 1);
                               }}
                               className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
@@ -903,142 +824,6 @@ export function Calendar() {
                         </div>
                       )}
                     </div>
-
-                    {/* Work Hours */}
-                    {timeLogs.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <Clock className="w-5 h-5" />
-                          Arbeitszeit
-                        </h3>
-                        <div className="space-y-3">
-                          {timeLogs.map((log) => {
-                            const project = projectsData.find(p => p.id === log.project_id);
-                            const internalClient = extractInternalClient(log.notes);
-                            const displayNotes = stripInternalClient(log.notes);
-                            const customerName = log.customer_name;
-                            const isEditing = editingTimeLogId === log.id;
-                            
-                            return (
-                              <div key={log.id} className="p-4 bg-gray-50 rounded-lg border">
-                                {isEditing ? (
-                                  <div className="space-y-3">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Stunden
-                                      </label>
-                                      <input
-                                        type="number"
-                                        value={editTimeLogHours}
-                                        onChange={(e) => setEditTimeLogHours(parseFloat(e.target.value))}
-                                        min="0"
-                                        step="0.5"
-                                        className="w-full px-4 py-2 border rounded-lg"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Notizen
-                                      </label>
-                                      <textarea
-                                        value={editTimeLogNotes}
-                                        onChange={(e) => setEditTimeLogNotes(e.target.value)}
-                                        className="w-full px-4 py-2 border rounded-lg h-20"
-                                        placeholder="Notizen zur Arbeitszeit..."
-                                      />
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => {
-                                          store.updateTimeLog(log.id, {
-                                            hours: editTimeLogHours,
-                                            notes: editTimeLogNotes
-                                          });
-                                          setEditingTimeLogId(null);
-                                          setShowDayDetailsModal(false);
-                                          setSelectedDay(null);
-                                        }}
-                                        className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
-                                      >
-                                        Speichern
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setEditingTimeLogId(null);
-                                          setEditTimeLogHours(0);
-                                          setEditTimeLogNotes('');
-                                        }}
-                                        className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 text-sm"
-                                      >
-                                        Abbrechen
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          if (confirm('Möchten Sie diesen Zeiteintrag wirklich löschen?')) {
-                                            store.deleteTimeLog(log.id);
-                                            setEditingTimeLogId(null);
-                                            setShowDayDetailsModal(false);
-                                            setSelectedDay(null);
-                                          }
-                                        }}
-                                        className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm"
-                                      >
-                                        Löschen
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <div className="font-medium text-gray-900">{project?.name || 'Unbekanntes Projekt'}</div>
-                                      <div className="flex flex-wrap gap-2 mt-2">
-                                        {customerName && (
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
-                                            Kunde: {customerName}
-                                          </span>
-                                        )}
-                                        {internalClient && (
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">
-                                            Intern: {internalClient}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {displayNotes && (
-                                        <p className="text-sm text-gray-600 mt-1">{displayNotes}</p>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <div className="text-lg font-bold text-blue-600">{log.hours}h</div>
-                                      </div>
-                                      <button
-                                        onClick={() => {
-                                          setEditingTimeLogId(log.id);
-                                          setEditTimeLogHours(log.hours);
-                                          setEditTimeLogNotes(log.notes || '');
-                                        }}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Bearbeiten"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          <div className="pt-3 border-t">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-gray-900">Gesamt:</span>
-                              <span className="text-xl font-bold text-blue-600">
-                                {timeLogs.reduce((sum, log) => sum + log.hours, 0)}h
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Absence Information */}
                     {dayAbsence && (
@@ -1109,7 +894,7 @@ export function Calendar() {
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-2">Unentschuldigt gefehlt</h3>
                             <p className="text-gray-600 mb-4">
-                              Keine Zeiterfassung und keine Abwesenheitsmeldung für diesen Tag.
+                              Keine Statusmeldung und keine Abwesenheitsmeldung für diesen Tag.
                             </p>
                             <button
                               onClick={() => {
@@ -1193,7 +978,7 @@ export function Calendar() {
 
                     {timeLogs.length === 0 && !dayAbsence && status === 'Sonstiges' && (
                       <div className="text-center py-8">
-                        <p className="text-gray-500">Keine Zeiteinträge für diesen Tag vorhanden.</p>
+                        <p className="text-gray-500">Kein Status für diesen Tag vorhanden.</p>
                       </div>
                     )}
                   </div>
