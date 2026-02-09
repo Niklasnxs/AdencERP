@@ -4,6 +4,7 @@ import { store } from '../store';
 import { Clock, FolderKanban, Users as UsersIcon, ChevronRight, ChevronDown, Download } from 'lucide-react';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
+import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -143,6 +144,8 @@ export function AdminDashboard() {
           Zeiterfassung als CSV exportieren
         </button>
       </div>
+
+      <AttendanceQuickActions userId={user.id} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

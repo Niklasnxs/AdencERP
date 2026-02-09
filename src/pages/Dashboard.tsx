@@ -3,6 +3,7 @@ import { store } from '../store';
 import { Clock, CheckCircle, AlertCircle, FolderKanban, Mail, MessageSquare, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
@@ -32,6 +33,8 @@ export function Dashboard() {
           {format(new Date(), 'EEEE, d. MMMM yyyy', { locale: de })}
         </p>
       </div>
+
+      <AttendanceQuickActions userId={user.id} />
 
       {isAdmin ? (
         // Admin Dashboard
