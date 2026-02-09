@@ -68,7 +68,6 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
 
     try {
       const todayLogs = store.getTimeLogsByUserAndDate(userId, today);
-      const todayAbsence = store.getAbsenceByUserAndDate(userId, today);
 
       if (status === 'Anwesend') {
         // Ensure no absence remains for this day so calendar color turns green.
@@ -87,22 +86,21 @@ export function AttendanceQuickActions({ userId }: { userId: string }) {
           await store.deleteTimeLog(log.id);
         }
 
-        const reason = todayAbsence?.reason || 'Per Dashboard gesetzt';
+        const currentAbsence = store.getAbsenceByUserAndDate(userId, today);
+        const reason = currentAbsence?.reason || 'Per Dashboard gesetzt';
         const absenceType = status as Extract<
           AbsenceType,
           'Homeoffice' | 'Schule' | 'Krankheit' | 'Urlaub' | 'Sonstiges' | 'Unentschuldigt'
         >;
 
-        if (todayAbsence) {
-          await store.updateAbsence(todayAbsence.id, { type: absenceType, reason });
-        } else {
-          await store.createAbsence({
-            user_id: userId,
-            date: today,
-            type: absenceType,
-            reason,
-          });
-        }
+        // Normalize to exactly one absence entry for today with the selected type.
+        await store.deleteAbsencesByUserAndDate(userId, today);
+        await store.createAbsence({
+          user_id: userId,
+          date: today,
+          type: absenceType,
+          reason,
+        });
       }
 
       setCurrentStatus(status);
