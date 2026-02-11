@@ -541,7 +541,7 @@ export function Calendar() {
                     const isFutureDay = isFuture(startOfDay(day));
                     const holidayName = getHamburgHoliday(day);
                     const isHoliday = Boolean(holidayName);
-                    const isDisabled = isWeekendDay || isFutureDay;
+                    const isDisabled = isWeekendDay;
                     const dayTimeLogs = timeLogsData.filter(
                       log => sameUserId(log.user_id, employee.id) && log.date === dateStr
                     );
@@ -572,9 +572,12 @@ export function Calendar() {
                     } else if (isHoliday) {
                       statusColor = 'bg-gray-400';
                       titleText = holidayName ? `Feiertag: ${holidayName}` : 'Feiertag';
-                    } else if (isDisabled) {
+                    } else if (isWeekendDay) {
                       statusColor = 'bg-gray-300';
-                      titleText = isWeekendDay ? 'Wochenende' : 'Zukünftiger Tag';
+                      titleText = 'Wochenende';
+                    } else if (isFutureDay) {
+                      statusColor = 'bg-gray-300';
+                      titleText = 'Zukünftiger Tag';
                     } else if (status === 'Entschuldigt') {
                       statusColor = 'bg-yellow-500';
                       titleText = 'Entschuldigt';
@@ -594,7 +597,7 @@ export function Calendar() {
                         key={day.toISOString()}
                         className={`p-2 text-center ${
                           isSameDay(day, new Date()) ? 'bg-blue-50' : ''
-                        } ${isDisabled ? 'opacity-50' : ''}`}
+                        } ${isFutureDay || isWeekendDay ? 'opacity-50' : ''}`}
                       >
                         <div
                           onClick={() => {
