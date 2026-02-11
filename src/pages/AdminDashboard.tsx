@@ -1,9 +1,20 @@
+import { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { AlertTriangle } from 'lucide-react';
+import { store } from '../store';
+import { AlertTriangle, X } from 'lucide-react';
+import { eachDayOfInterval, format } from 'date-fns';
 import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
+  const [showVacationModal, setShowVacationModal] = useState(false);
+  const [showSchoolModal, setShowSchoolModal] = useState(false);
+  const [vacationStartDate, setVacationStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [vacationEndDate, setVacationEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [vacationReason, setVacationReason] = useState('');
+  const [schoolStartDate, setSchoolStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [schoolReason, setSchoolReason] = useState('');
 
   if (!user || !isAdmin) {
     return (
@@ -14,6 +25,76 @@ export function AdminDashboard() {
       </div>
     );
   }
+
+  const handleCreateVacation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const start = new Date(vacationStartDate);
+    const end = new Date(vacationEndDate);
+    const days = eachDayOfInterval({ start, end });
+    const failedDates: string[] = [];
+
+    for (const day of days) {
+      const dateString = format(day, 'yyyy-MM-dd');
+      try {
+        await store.createAbsence({
+          user_id: user.id,
+          date: dateString,
+          type: 'Urlaub',
+          reason: vacationReason.trim() || '-',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Absence already exists')) {
+          continue;
+        }
+        failedDates.push(dateString);
+      }
+    }
+
+    if (failedDates.length > 0) {
+      alert(`Einige Tage konnten nicht gespeichert werden: ${failedDates.join(', ')}`);
+    }
+
+    setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setVacationReason('');
+    setShowVacationModal(false);
+    await store.initialize();
+  };
+
+  const handleCreateSchoolRange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const start = new Date(schoolStartDate);
+    const end = new Date(schoolEndDate);
+    const days = eachDayOfInterval({ start, end });
+    const failedDates: string[] = [];
+
+    for (const day of days) {
+      const dateString = format(day, 'yyyy-MM-dd');
+      try {
+        await store.createAbsence({
+          user_id: user.id,
+          date: dateString,
+          type: 'Schule',
+          reason: schoolReason.trim() || '-',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Absence already exists')) {
+          continue;
+        }
+        failedDates.push(dateString);
+      }
+    }
+
+    if (failedDates.length > 0) {
+      alert(`Einige Tage konnten nicht gespeichert werden: ${failedDates.join(', ')}`);
+    }
+
+    setSchoolStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setSchoolEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setSchoolReason('');
+    setShowSchoolModal(false);
+    await store.initialize();
+  };
 
   return (
     <div className="p-8">
@@ -34,6 +115,171 @@ export function AdminDashboard() {
       </div>
 
       <AttendanceQuickActions userId={user.id} />
+
+      <div className="mb-8 flex flex-wrap gap-3">
+        <button
+          onClick={() => setShowVacationModal(true)}
+          className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Urlaub eintragen
+        </button>
+        <button
+          onClick={() => setShowSchoolModal(true)}
+          className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+        >
+          Schultage eintragen
+        </button>
+      </div>
+
+      {showVacationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Urlaub eintragen</h2>
+              <button
+                onClick={() => setShowVacationModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateVacation} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    value={vacationStartDate}
+                    onChange={(e) => setVacationStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    value={vacationEndDate}
+                    min={vacationStartDate}
+                    onChange={(e) => setVacationEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Grund (optional)
+                </label>
+                <textarea
+                  value={vacationReason}
+                  onChange={(e) => setVacationReason(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg h-20"
+                  placeholder="Optionaler Grund für Urlaub"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#1e3a8a] text-white py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Urlaub speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
+                    setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
+                    setVacationReason('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showSchoolModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Schultage eintragen</h2>
+              <button
+                onClick={() => setShowSchoolModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateSchoolRange} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    value={schoolStartDate}
+                    onChange={(e) => setSchoolStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    value={schoolEndDate}
+                    min={schoolStartDate}
+                    onChange={(e) => setSchoolEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Grund (optional)
+                </label>
+                <textarea
+                  value={schoolReason}
+                  onChange={(e) => setSchoolReason(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg h-20"
+                  placeholder="Optionaler Grund für Schule"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600"
+                >
+                  Schultage speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSchoolStartDate(format(new Date(), 'yyyy-MM-dd'));
+                    setSchoolEndDate(format(new Date(), 'yyyy-MM-dd'));
+                    setSchoolReason('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
