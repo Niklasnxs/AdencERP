@@ -30,6 +30,11 @@ export function Calendar() {
   const [vacationEndDate, setVacationEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [vacationReason, setVacationReason] = useState('');
   const [showVacationModal, setShowVacationModal] = useState(false);
+  const [schoolEmployeeId, setSchoolEmployeeId] = useState<string>('');
+  const [schoolStartDate, setSchoolStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [schoolReason, setSchoolReason] = useState('');
+  const [showSchoolModal, setShowSchoolModal] = useState(false);
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
@@ -160,6 +165,49 @@ export function Calendar() {
     setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
     setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
     setVacationReason('');
+    await store.initialize();
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 500);
+  };
+
+  const handleCreateSchoolRange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolEmployeeId) {
+      alert('Bitte wählen Sie einen Mitarbeiter aus');
+      return;
+    }
+    const start = new Date(schoolStartDate);
+    const end = new Date(schoolEndDate);
+    const days = eachDayOfInterval({ start, end });
+    const failedDates: string[] = [];
+
+    for (const day of days) {
+      const dateString = format(day, 'yyyy-MM-dd');
+      try {
+        await store.createAbsence({
+          user_id: schoolEmployeeId,
+          date: dateString,
+          type: 'Schule',
+          reason: schoolReason.trim() || '-',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Absence already exists')) {
+          continue;
+        }
+        failedDates.push(dateString);
+      }
+    }
+
+    if (failedDates.length > 0) {
+      alert(`Einige Tage konnten nicht gespeichert werden: ${failedDates.join(', ')}`);
+    }
+
+    setSchoolEmployeeId('');
+    setSchoolStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setSchoolEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setSchoolReason('');
+    setShowSchoolModal(false);
     await store.initialize();
     setTimeout(() => {
       setRefreshKey(prev => prev + 1);
@@ -351,12 +399,18 @@ export function Calendar() {
       )}
 
       {isAdmin && (
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap gap-3">
           <button
             onClick={() => setShowVacationModal(true)}
             className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Urlaub eintragen (Zeitraum)
+          </button>
+          <button
+            onClick={() => setShowSchoolModal(true)}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Schultage eintragen (Zeitraum)
           </button>
         </div>
       )}
@@ -442,6 +496,98 @@ export function Calendar() {
                     setVacationStartDate(format(new Date(), 'yyyy-MM-dd'));
                     setVacationEndDate(format(new Date(), 'yyyy-MM-dd'));
                     setVacationReason('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && showSchoolModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Schultage eintragen (Zeitraum)</h2>
+              <button
+                onClick={() => setShowSchoolModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateSchoolRange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mitarbeiter
+                </label>
+                <select
+                  value={schoolEmployeeId}
+                  onChange={(e) => setSchoolEmployeeId(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {usersData.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Startdatum
+                  </label>
+                  <input
+                    type="date"
+                    value={schoolStartDate}
+                    onChange={(e) => setSchoolStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enddatum
+                  </label>
+                  <input
+                    type="date"
+                    value={schoolEndDate}
+                    min={schoolStartDate}
+                    onChange={(e) => setSchoolEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Grund (optional)
+                </label>
+                <textarea
+                  value={schoolReason}
+                  onChange={(e) => setSchoolReason(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg h-20"
+                  placeholder="Optionaler Grund für Schule"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600"
+                >
+                  Schultage speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSchoolEmployeeId('');
+                    setSchoolStartDate(format(new Date(), 'yyyy-MM-dd'));
+                    setSchoolEndDate(format(new Date(), 'yyyy-MM-dd'));
+                    setSchoolReason('');
                   }}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
                 >
