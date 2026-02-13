@@ -26,7 +26,7 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     {
       label: 'Übersicht',
-      path: '/',
+      path: '/uebersicht',
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {

@@ -30,14 +30,15 @@ function AppRoutes() {
           </PrivateRoute>
         }
       >
-        <Route path="/" element={<DashboardRoute />} />
+        <Route path="/" element={<Navigate to="/kalender" replace />} />
+        <Route path="/uebersicht" element={<DashboardRoute />} />
         <Route path="/projekte" element={<Projects />} />
         <Route path="/zeiterfassung" element={<Navigate to="/kalender" replace />} />
         <Route path="/kalender" element={<Calendar />} />
         <Route path="/benutzer" element={<Users />} />
         <Route path="/kunden" element={<Customers />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/kalender" replace />} />
     </Routes>
   );
 }
