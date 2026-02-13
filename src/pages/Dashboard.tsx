@@ -222,6 +222,25 @@ export function Dashboard() {
                 <p className="text-sm text-gray-600">Meeting beitreten</p>
               </div>
             </button>
+
+            <button
+              onClick={() => {
+                if (user.stundenliste_link) {
+                  window.open(user.stundenliste_link, '_blank');
+                } else {
+                  alert('Kein Stundenliste-Link hinterlegt.');
+                }
+              }}
+              className="flex items-center gap-4 p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-200"
+            >
+              <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Stundenliste</h3>
+                <p className="text-sm text-gray-600">Link öffnen</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>

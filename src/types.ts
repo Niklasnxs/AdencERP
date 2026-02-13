@@ -14,6 +14,7 @@ export interface User {
   email_access?: string; // Email access information
   mattermost_url?: string; // Mattermost login URL
   zoom_link?: string; // Zoom meeting link
+  stundenliste_link?: string; // Stundenliste link
 }
 
 // Project Types

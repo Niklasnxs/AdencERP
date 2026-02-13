@@ -95,7 +95,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at FROM users ORDER BY id'
+      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at FROM users ORDER BY id'
     );
     res.json(result.rows);
   } catch (error) {
@@ -108,7 +108,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
 app.get('/api/users/:id', authenticateToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at FROM users WHERE id = $1',
       [req.params.id]
     );
     
@@ -130,12 +130,12 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await db.query(
-      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at',
-      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, mattermost_url || null, zoom_link || null]
+      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at',
+      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, mattermost_url || null, zoom_link || null, stundenliste_link || null]
     );
 
     res.status(201).json(result.rows[0]);
@@ -155,7 +155,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link } = req.body;
+    const { email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link } = req.body;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -201,11 +201,15 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       updates.push(`zoom_link = $${paramCount++}`);
       values.push(zoom_link || null);
     }
+    if (stundenliste_link !== undefined) {
+      updates.push(`stundenliste_link = $${paramCount++}`);
+      values.push(stundenliste_link || null);
+    }
 
     values.push(req.params.id);
 
     const result = await db.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, created_at`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at`,
       values
     );
 

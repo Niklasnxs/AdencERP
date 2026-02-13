@@ -13,13 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     email_access TEXT,
     mattermost_url TEXT,
     zoom_link TEXT,
+    stundenliste_link TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS email_access TEXT,
 ADD COLUMN IF NOT EXISTS mattermost_url TEXT,
-ADD COLUMN IF NOT EXISTS zoom_link TEXT;
+ADD COLUMN IF NOT EXISTS zoom_link TEXT,
+ADD COLUMN IF NOT EXISTS stundenliste_link TEXT;
 
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (

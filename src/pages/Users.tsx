@@ -21,6 +21,7 @@ export function Users() {
     email_access: '',
     mattermost_url: '',
     zoom_link: '',
+    stundenliste_link: '',
   });
 
   if (!isAdmin) {
@@ -51,6 +52,7 @@ export function Users() {
         email_access: formData.email_access || undefined,
         mattermost_url: formData.mattermost_url || undefined,
         zoom_link: formData.zoom_link || undefined,
+        stundenliste_link: formData.stundenliste_link || undefined,
       };
       
       // Only update password if provided
@@ -73,6 +75,7 @@ export function Users() {
         email_access: formData.email_access || undefined,
         mattermost_url: formData.mattermost_url || undefined,
         zoom_link: formData.zoom_link || undefined,
+        stundenliste_link: formData.stundenliste_link || undefined,
       });
     }
     
@@ -87,6 +90,7 @@ export function Users() {
       email_access: '',
       mattermost_url: '',
       zoom_link: '',
+      stundenliste_link: '',
     });
     setShowForm(false);
     // Refresh user list after API call completes
@@ -106,6 +110,7 @@ export function Users() {
       email_access: user.email_access || '',
       mattermost_url: user.mattermost_url || '',
       zoom_link: user.zoom_link || '',
+      stundenliste_link: user.stundenliste_link || '',
     });
     setShowForm(true);
   };
@@ -150,6 +155,7 @@ export function Users() {
               email_access: '',
               mattermost_url: '',
               zoom_link: '',
+              stundenliste_link: '',
             });
             setShowForm(true);
           }}
@@ -324,6 +330,22 @@ export function Users() {
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Persönlicher Zoom Meeting Link
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stundenliste Link
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.stundenliste_link}
+                      onChange={(e) => setFormData({ ...formData, stundenliste_link: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="https://..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Link zur Stundenliste des Benutzers
                     </p>
                   </div>
                 </div>

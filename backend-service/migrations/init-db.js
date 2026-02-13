@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     email_access TEXT,
     mattermost_url TEXT,
     zoom_link TEXT,
+    stundenliste_link TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -125,8 +126,8 @@ try {
     // Insert default employees (password: emp123)
     const empPassword = bcrypt.hashSync('emp123', 10);
     const insertEmployee = db.prepare(
-      `INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     insertEmployee.run(
       'max.mueller@adenc.de',
@@ -138,7 +139,8 @@ try {
       'full_time',
       'max.mueller@adenc.de',
       'https://mattermost.adenc.de/team/max',
-      'https://zoom.us/j/88300011111'
+      'https://zoom.us/j/88300011111',
+      null
     );
     insertEmployee.run(
       'anna.schmidt@adenc.de',
@@ -150,7 +152,8 @@ try {
       'part_time',
       'anna.schmidt@adenc.de',
       'https://mattermost.adenc.de/team/anna',
-      'https://zoom.us/j/88300022222'
+      'https://zoom.us/j/88300022222',
+      null
     );
     insertEmployee.run(
       'lena.hartmann@adenc.de',
@@ -162,7 +165,8 @@ try {
       'full_time',
       'lena.hartmann@adenc.de',
       'https://mattermost.adenc.de/team/lena',
-      'https://zoom.us/j/88300033333'
+      'https://zoom.us/j/88300033333',
+      null
     );
     insertEmployee.run(
       'jannik.weber@adenc.de',
@@ -174,7 +178,8 @@ try {
       'full_time',
       'jannik.weber@adenc.de',
       'https://mattermost.adenc.de/team/jannik',
-      'https://zoom.us/j/88300044444'
+      'https://zoom.us/j/88300044444',
+      null
     );
     console.log('   ✓ Employee users created (emp123 for all)');
 
