@@ -4,7 +4,7 @@ import { store } from '../store';
 import { AlertTriangle, X } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
-import { getHamburgWorkdaysForYear } from '../utils/attendanceYear';
+import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -30,7 +30,7 @@ export function AdminDashboard() {
     );
   }
   const currentYear = new Date().getFullYear();
-  const employees = store.getUsers().filter((u) => u.role === 'employee');
+  const users = store.getUsers();
 
   const handleCreateVacation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,38 +110,14 @@ export function AdminDashboard() {
     }
 
     setIsFillingYear(true);
-    let created = 0;
-    let skipped = 0;
-
     try {
-      const workdays = getHamburgWorkdaysForYear(currentYear);
-      for (const date of workdays) {
-        const existingLogs = store.getTimeLogsByUserAndDate(yearFillUserId, date);
-        await store.deleteAbsencesByUserAndDate(yearFillUserId, date);
-
-        if (existingLogs.length > 0) {
-          skipped += 1;
-          continue;
-        }
-
-        try {
-          await store.createTimeLog({
-            user_id: yearFillUserId,
-            customer_name: 'Statusmeldung',
-            date,
-            hours: 0,
-            notes: `Jahreseintrag ${currentYear}: Anwesend`,
-          });
-          created += 1;
-        } catch {
-          skipped += 1;
-        }
-      }
-
+      const result = await fillYearAsPresentForUser(yearFillUserId, currentYear);
       await store.initialize();
       setShowYearFillModal(false);
       setYearFillUserId('');
-      alert(`Jahreseintrag abgeschlossen. Neu gesetzt: ${created}, übersprungen: ${skipped}.`);
+      alert(
+        `Jahreseintrag abgeschlossen. Neu gesetzt: ${result.created}, übersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
+      );
     } finally {
       setIsFillingYear(false);
     }
@@ -357,7 +333,7 @@ export function AdminDashboard() {
               </p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mitarbeiter
+                  Benutzer
                 </label>
                 <select
                   value={yearFillUserId}
@@ -366,9 +342,9 @@ export function AdminDashboard() {
                   required
                 >
                   <option value="">Bitte auswählen...</option>
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.full_name}
+                  {users.map((selectedUser) => (
+                    <option key={selectedUser.id} value={selectedUser.id}>
+                      {selectedUser.full_name} ({selectedUser.role})
                     </option>
                   ))}
                 </select>
