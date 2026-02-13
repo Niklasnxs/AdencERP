@@ -5,6 +5,7 @@ import { Clock, AlertCircle, FolderKanban, AlertTriangle, X } from 'lucide-react
 import { eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
+import { getHamburgWorkdaysForYear } from '../utils/attendanceYear';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
@@ -16,8 +17,10 @@ export function Dashboard() {
   const [schoolStartDate, setSchoolStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolReason, setSchoolReason] = useState('');
+  const [isFillingYear, setIsFillingYear] = useState(false);
 
   if (!user) return null;
+  const currentYear = new Date().getFullYear();
 
   const allUsers = store.getUsers();
   const allProjects = store.getProjects();
@@ -93,6 +96,48 @@ export function Dashboard() {
     await store.initialize();
   };
 
+  const handleFillYearAsPresent = async () => {
+    const confirmed = window.confirm(
+      `Alle Werktage im Jahr ${currentYear} als Anwesend eintragen (ohne Hamburger Feiertage)?`
+    );
+    if (!confirmed) return;
+
+    setIsFillingYear(true);
+    let created = 0;
+    let skipped = 0;
+
+    try {
+      const workdays = getHamburgWorkdaysForYear(currentYear);
+      for (const date of workdays) {
+        const existingLogs = store.getTimeLogsByUserAndDate(user.id, date);
+        await store.deleteAbsencesByUserAndDate(user.id, date);
+
+        if (existingLogs.length > 0) {
+          skipped += 1;
+          continue;
+        }
+
+        try {
+          await store.createTimeLog({
+            user_id: user.id,
+            customer_name: 'Statusmeldung',
+            date,
+            hours: 0,
+            notes: `Jahreseintrag ${currentYear}: Anwesend`,
+          });
+          created += 1;
+        } catch {
+          skipped += 1;
+        }
+      }
+
+      await store.initialize();
+      alert(`Jahreseintrag abgeschlossen. Neu gesetzt: ${created}, übersprungen: ${skipped}.`);
+    } finally {
+      setIsFillingYear(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8">
@@ -131,6 +176,13 @@ export function Dashboard() {
             className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
           >
             Schultage eintragen
+          </button>
+          <button
+            onClick={handleFillYearAsPresent}
+            disabled={isFillingYear}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isFillingYear ? 'Wird eingetragen...' : `Jahr ${currentYear} komplett anwesend`}
           </button>
         </div>
       )}

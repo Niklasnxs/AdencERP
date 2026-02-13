@@ -4,6 +4,7 @@ import { store } from '../store';
 import { AlertTriangle, X } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { AttendanceQuickActions } from '../components/AttendanceQuickActions';
+import { getHamburgWorkdaysForYear } from '../utils/attendanceYear';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -15,6 +16,9 @@ export function AdminDashboard() {
   const [schoolStartDate, setSchoolStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolReason, setSchoolReason] = useState('');
+  const [showYearFillModal, setShowYearFillModal] = useState(false);
+  const [yearFillUserId, setYearFillUserId] = useState('');
+  const [isFillingYear, setIsFillingYear] = useState(false);
 
   if (!user || !isAdmin) {
     return (
@@ -25,6 +29,8 @@ export function AdminDashboard() {
       </div>
     );
   }
+  const currentYear = new Date().getFullYear();
+  const employees = store.getUsers().filter((u) => u.role === 'employee');
 
   const handleCreateVacation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +102,51 @@ export function AdminDashboard() {
     await store.initialize();
   };
 
+  const handleFillYearAsPresentForEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!yearFillUserId) {
+      alert('Bitte Mitarbeiter auswählen');
+      return;
+    }
+
+    setIsFillingYear(true);
+    let created = 0;
+    let skipped = 0;
+
+    try {
+      const workdays = getHamburgWorkdaysForYear(currentYear);
+      for (const date of workdays) {
+        const existingLogs = store.getTimeLogsByUserAndDate(yearFillUserId, date);
+        await store.deleteAbsencesByUserAndDate(yearFillUserId, date);
+
+        if (existingLogs.length > 0) {
+          skipped += 1;
+          continue;
+        }
+
+        try {
+          await store.createTimeLog({
+            user_id: yearFillUserId,
+            customer_name: 'Statusmeldung',
+            date,
+            hours: 0,
+            notes: `Jahreseintrag ${currentYear}: Anwesend`,
+          });
+          created += 1;
+        } catch {
+          skipped += 1;
+        }
+      }
+
+      await store.initialize();
+      setShowYearFillModal(false);
+      setYearFillUserId('');
+      alert(`Jahreseintrag abgeschlossen. Neu gesetzt: ${created}, übersprungen: ${skipped}.`);
+    } finally {
+      setIsFillingYear(false);
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -128,6 +179,12 @@ export function AdminDashboard() {
           className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
         >
           Schultage eintragen
+        </button>
+        <button
+          onClick={() => setShowYearFillModal(true)}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Jahr {currentYear} komplett anwesend
         </button>
       </div>
 
@@ -274,6 +331,62 @@ export function AdminDashboard() {
                   className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
                 >
                   Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showYearFillModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Jahreseintrag Anwesenheit</h2>
+              <button
+                onClick={() => setShowYearFillModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleFillYearAsPresentForEmployee} className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Es werden alle Werktage im Jahr {currentYear} als Anwesend gesetzt, Feiertage in Hamburg werden ausgelassen.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mitarbeiter
+                </label>
+                <select
+                  value={yearFillUserId}
+                  onChange={(e) => setYearFillUserId(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={isFillingYear}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isFillingYear ? 'Wird eingetragen...' : 'Eintragen'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowYearFillModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Abbrechen
                 </button>
               </div>
             </form>
