@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { LogIn } from 'lucide-react';
+import { APP_LOGO_URL, APP_NAME } from '../config/branding';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -27,8 +28,9 @@ export function Login() {
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a] to-[#475569] flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#1e3a8a] mb-2">Cockpit</h1>
-          <p className="text-gray-600">Dein Zugang zu Zeiten, Abwesenheiten und Infos</p>
+          <img src={APP_LOGO_URL} alt="Logo" className="w-16 h-16 rounded-xl object-cover bg-gray-100 mx-auto mb-3" />
+          <h1 className="text-3xl font-bold text-[#1e3a8a] mb-2">{APP_NAME}</h1>
+          <p className="text-gray-600">Dein Zugang zu Anwesenheiten, Regeln und Links</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

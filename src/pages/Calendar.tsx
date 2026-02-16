@@ -9,7 +9,16 @@ import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Cu
 
 export function Calendar() {
   const { user, isAdmin } = useAuth();
-  type EmployeeDayStatus = 'Anwesend' | 'Homeoffice' | 'Schule' | 'Krankheit' | 'Sonstiges' | '';
+  type EmployeeDayStatus =
+    | 'Anwesenheit'
+    | 'Anwesenheit Homeoffice'
+    | 'Krank'
+    | 'Krank und unentschuldigt'
+    | 'Unentschuldigt'
+    | 'Urlaub'
+    | 'Schule'
+    | 'Arbeitsende'
+    | '';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
@@ -21,7 +30,7 @@ export function Calendar() {
   const [isEditingAbsence, setIsEditingAbsence] = useState(false);
   const [isAddingRetroactiveAbsence, setIsAddingRetroactiveAbsence] = useState(false);
   const [editAbsenceReason, setEditAbsenceReason] = useState('');
-  const [retroAbsenceType, setRetroAbsenceType] = useState<AbsenceType>('Krankheit');
+  const [retroAbsenceType, setRetroAbsenceType] = useState<AbsenceType>('Krank');
   const [retroAbsenceReason, setRetroAbsenceReason] = useState('');
   const [absenceStartDate, setAbsenceStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [absenceEndDate, setAbsenceEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -35,13 +44,13 @@ export function Calendar() {
   const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolReason, setSchoolReason] = useState('');
   const [showSchoolModal, setShowSchoolModal] = useState(false);
-  const [absenceType, setAbsenceType] = useState<AbsenceType>('Krankheit');
+  const [absenceType, setAbsenceType] = useState<AbsenceType>('Krank');
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
-  const [targetStatus, setTargetStatus] = useState<'Anwesend' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
-  const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krankheit');
+  const [targetStatus, setTargetStatus] = useState<'Anwesenheit' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
+  const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krank');
   const [targetReason, setTargetReason] = useState<string>('');
   const [usersData, setUsersData] = useState<User[]>([]);
   const [_projectsData, setProjectsData] = useState<Project[]>([]);
@@ -118,7 +127,7 @@ export function Calendar() {
     }
     setAbsenceStartDate(format(new Date(), 'yyyy-MM-dd'));
     setAbsenceEndDate(format(new Date(), 'yyyy-MM-dd'));
-    setAbsenceType('Krankheit');
+    setAbsenceType('Krank');
     setAbsenceReason('');
     setShowAbsenceForm(false);
     // Re-initialize store to fetch fresh data
@@ -255,11 +264,18 @@ export function Calendar() {
     return a?.toString() === b?.toString();
   };
 
+  const normalizeAbsenceType = (type: AbsenceType): AbsenceType => {
+    if (type === 'Krankheit') return 'Krank';
+    if (type === 'Homeoffice') return 'Anwesenheit Homeoffice';
+    if (type === 'Sonstiges') return 'Arbeitsende';
+    return type;
+  };
+
   const getAttendanceStatus = (userId: string, date: string): AttendanceStatus => {
     const hasTimeLog = timeLogsData.some(
       log => sameUserId(log.user_id, userId) && log.date === date
     );
-    if (hasTimeLog) return 'Anwesend';
+    if (hasTimeLog) return 'Anwesenheit';
 
     const absence = absencesData.find(
       abs => sameUserId(abs.user_id, userId) && abs.date === date
@@ -268,14 +284,14 @@ export function Calendar() {
       return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
     }
 
-    return 'Sonstiges';
+    return 'Anwesenheit';
   };
 
   const users = isAdmin ? usersData : [user];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Anwesend':
+      case 'Anwesenheit':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'Entschuldigt':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
@@ -290,18 +306,23 @@ export function Calendar() {
 
   const getAbsenceTypeColor = (type: AbsenceType) => {
     switch (type) {
+      case 'Krank':
       case 'Krankheit':
-        return 'bg-red-500'; // Rot für Krankheit
+        return 'bg-red-500';
+      case 'Krank und unentschuldigt':
+        return 'bg-rose-700';
       case 'Urlaub':
-        return 'bg-blue-500'; // Blau für Urlaub
+        return 'bg-blue-500';
+      case 'Anwesenheit Homeoffice':
       case 'Homeoffice':
-        return 'bg-purple-500'; // Lila für Homeoffice
+        return 'bg-purple-500';
       case 'Schule':
-        return 'bg-orange-500'; // Orange für Schule
+        return 'bg-orange-500';
+      case 'Arbeitsende':
       case 'Sonstiges':
-        return 'bg-gray-500'; // Grau für Sonstiges
+        return 'bg-slate-500';
       default:
-        return 'bg-yellow-500'; // Gelb als Fallback
+        return 'bg-yellow-500';
     }
   };
 
@@ -357,11 +378,13 @@ export function Calendar() {
                   className="w-full px-4 py-2 border rounded-lg"
                   required
                 >
-                  <option value="Krankheit">Krankheit</option>
+                  <option value="Krank">Krank</option>
+                  <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                   <option value="Urlaub">Urlaub</option>
-                  <option value="Homeoffice">Homeoffice</option>
+                  <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
                   <option value="Schule">Schule</option>
-                  <option value="Sonstiges">Sonstiges</option>
+                  <option value="Arbeitsende">Arbeitsende</option>
+                  <option value="Unentschuldigt">Unentschuldigt</option>
                 </select>
               </div>
 
@@ -602,14 +625,18 @@ export function Calendar() {
       {/* Legend */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="font-bold text-gray-900 mb-4">Legende</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-green-500"></div>
-            <span className="text-sm text-gray-700">Anwesend</span>
+            <span className="text-sm text-gray-700">Anwesenheit</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-red-500"></div>
-            <span className="text-sm text-gray-700">Krankheit</span>
+            <span className="text-sm text-gray-700">Krank</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-rose-700"></div>
+            <span className="text-sm text-gray-700">Krank und unentschuldigt</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-blue-500"></div>
@@ -617,15 +644,15 @@ export function Calendar() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-purple-500"></div>
-            <span className="text-sm text-gray-700">Homeoffice</span>
+            <span className="text-sm text-gray-700">Anwesenheit Homeoffice</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-orange-500"></div>
             <span className="text-sm text-gray-700">Schule</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-gray-500"></div>
-            <span className="text-sm text-gray-700">Sonstiges</span>
+            <div className="w-4 h-4 rounded bg-slate-500"></div>
+            <span className="text-sm text-gray-700">Arbeitsende</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-red-500 border-2 border-red-700"></div>
@@ -705,16 +732,17 @@ export function Calendar() {
                     let titleText = '';
 
                     if (dayAbsence) {
+                      const normalizedType = normalizeAbsenceType(dayAbsence.type);
                       if (dayAbsence.type === 'Unentschuldigt') {
                         statusColor = 'bg-red-600 ring-2 ring-red-900';
                         titleText = 'Unentschuldigt gefehlt';
                       } else {
-                        statusColor = getAbsenceTypeColor(dayAbsence.type);
-                        titleText = `Entschuldigt: ${dayAbsence.type}`;
+                        statusColor = getAbsenceTypeColor(normalizedType);
+                        titleText = `${normalizedType}`;
                       }
                     } else if (hasTimeLog) {
                       statusColor = 'bg-green-500';
-                      titleText = 'Anwesend';
+                      titleText = 'Anwesenheit';
                     } else if (isHoliday) {
                       statusColor = 'bg-gray-400';
                       titleText = holidayName ? `Feiertag: ${holidayName}` : 'Feiertag';
@@ -735,7 +763,7 @@ export function Calendar() {
                       titleText = 'Sonstiges';
                     } else {
                       statusColor = 'bg-green-500';
-                      titleText = 'Anwesend';
+                      titleText = 'Anwesenheit';
                     }
 
                     return (
@@ -759,11 +787,15 @@ export function Calendar() {
                               );
 
                               let initialStatus: EmployeeDayStatus = '';
-                              if (employeeAbsence?.type === 'Homeoffice') initialStatus = 'Homeoffice';
-                              if (employeeAbsence?.type === 'Schule') initialStatus = 'Schule';
-                              if (employeeAbsence?.type === 'Krankheit') initialStatus = 'Krankheit';
-                              if (employeeAbsence?.type === 'Sonstiges') initialStatus = 'Sonstiges';
-                              if (employeeHasTimeLog) initialStatus = 'Anwesend';
+                              const normalizedType = employeeAbsence ? normalizeAbsenceType(employeeAbsence.type) : '';
+                              if (normalizedType === 'Anwesenheit Homeoffice') initialStatus = 'Anwesenheit Homeoffice';
+                              if (normalizedType === 'Schule') initialStatus = 'Schule';
+                              if (normalizedType === 'Krank') initialStatus = 'Krank';
+                              if (normalizedType === 'Krank und unentschuldigt') initialStatus = 'Krank und unentschuldigt';
+                              if (normalizedType === 'Unentschuldigt') initialStatus = 'Unentschuldigt';
+                              if (normalizedType === 'Urlaub') initialStatus = 'Urlaub';
+                              if (normalizedType === 'Arbeitsende') initialStatus = 'Arbeitsende';
+                              if (employeeHasTimeLog) initialStatus = 'Anwesenheit';
 
                               setSelectedDay({ date: dateStr, userId: employee.id });
                               setEmployeeDayStatus(initialStatus);
@@ -858,7 +890,7 @@ export function Calendar() {
                               onChange={(e) => setTargetStatus(e.target.value as typeof targetStatus)}
                               className="w-full px-4 py-2 border rounded-lg"
                             >
-                              <option value="Anwesend">Anwesend</option>
+                              <option value="Anwesenheit">Anwesenheit</option>
                               <option value="Entschuldigt">Entschuldigt</option>
                               <option value="Unentschuldigt">Unentschuldigt</option>
                             </select>
@@ -875,11 +907,12 @@ export function Calendar() {
                                   onChange={(e) => setTargetAbsenceType(e.target.value as AbsenceType)}
                                   className="w-full px-4 py-2 border rounded-lg"
                                 >
-                                  <option value="Krankheit">Krankheit</option>
+                                  <option value="Krank">Krank</option>
+                                  <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                                   <option value="Urlaub">Urlaub</option>
-                                  <option value="Homeoffice">Homeoffice</option>
+                                  <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
                                   <option value="Schule">Schule</option>
-                                  <option value="Sonstiges">Sonstiges</option>
+                                  <option value="Arbeitsende">Arbeitsende</option>
                                 </select>
                               </div>
                               <div>
@@ -905,7 +938,7 @@ export function Calendar() {
                                 value={targetReason}
                                 onChange={(e) => setTargetReason(e.target.value)}
                                 className="w-full px-4 py-2 border rounded-lg h-20"
-                                placeholder="Warum unentschuldigt?"
+                                placeholder="Beschreibung für unentschuldigt"
                                 required
                               />
                             </div>
@@ -914,7 +947,7 @@ export function Calendar() {
                           <div className="flex gap-2">
                             <button
                               onClick={async () => {
-                                if (targetStatus === 'Anwesend') {
+                                if (targetStatus === 'Anwesenheit') {
                                   await store.deleteAbsencesByUserAndDate(selectedDay.userId, selectedDay.date);
                                   const dayTimeLogs = timeLogsData.filter(
                                     (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
@@ -925,7 +958,7 @@ export function Calendar() {
                                       customer_name: 'Statusmeldung',
                                       date: selectedDay.date,
                                       hours: 0,
-                                      notes: 'Tagesstatus: Anwesend',
+                                      notes: 'Tagesstatus: Anwesenheit',
                                     });
                                   }
                                 } else if (targetStatus === 'Entschuldigt') {
@@ -1048,7 +1081,7 @@ export function Calendar() {
                             <button
                               onClick={() => {
                                 setIsAddingRetroactiveAbsence(true);
-                                setRetroAbsenceType('Krankheit');
+                                setRetroAbsenceType('Krank');
                                 setRetroAbsenceReason('');
                               }}
                               className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
@@ -1070,11 +1103,12 @@ export function Calendar() {
                                 className="w-full px-4 py-2 border rounded-lg"
                                 required
                               >
-                                <option value="Krankheit">Krankheit</option>
+                                <option value="Krank">Krank</option>
+                                <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                                 <option value="Urlaub">Urlaub</option>
-                                <option value="Homeoffice">Homeoffice</option>
+                                <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
                                 <option value="Schule">Schule</option>
-                                <option value="Sonstiges">Sonstiges</option>
+                                <option value="Arbeitsende">Arbeitsende</option>
                               </select>
                             </div>
 
@@ -1183,7 +1217,16 @@ export function Calendar() {
                   Status
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(['Anwesend', 'Homeoffice', 'Schule', 'Krankheit', 'Sonstiges'] as const).map((status) => (
+                  {([
+                    'Anwesenheit',
+                    'Anwesenheit Homeoffice',
+                    'Krank',
+                    'Krank und unentschuldigt',
+                    'Unentschuldigt',
+                    'Urlaub',
+                    'Schule',
+                    'Arbeitsende',
+                  ] as const).map((status) => (
                     <button
                       key={status}
                       type="button"
@@ -1200,7 +1243,7 @@ export function Calendar() {
                 </div>
               </div>
 
-              {employeeDayStatus && employeeDayStatus !== 'Anwesend' && (
+              {employeeDayStatus && employeeDayStatus !== 'Anwesenheit' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Grund (optional)
@@ -1230,7 +1273,7 @@ export function Calendar() {
                     (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
                   );
 
-                  if (employeeDayStatus === 'Anwesend') {
+                  if (employeeDayStatus === 'Anwesenheit') {
                     for (const absence of dayAbsences) {
                       await store.deleteAbsence(absence.id);
                     }
@@ -1240,7 +1283,7 @@ export function Calendar() {
                         customer_name: 'Statusmeldung',
                         date: selectedDay.date,
                         hours: 0,
-                        notes: 'Tagesstatus: Anwesend',
+                        notes: 'Tagesstatus: Anwesenheit',
                       });
                     }
                   } else {
@@ -1248,7 +1291,10 @@ export function Calendar() {
                       await store.deleteTimeLog(log.id);
                     }
                     const reason = employeeDayReason.trim() || '-';
-                    const absenceType = employeeDayStatus as Extract<AbsenceType, 'Homeoffice' | 'Schule' | 'Krankheit' | 'Sonstiges'>;
+                    const absenceType = employeeDayStatus as Extract<
+                      AbsenceType,
+                      'Anwesenheit Homeoffice' | 'Schule' | 'Krank' | 'Krank und unentschuldigt' | 'Urlaub' | 'Arbeitsende' | 'Unentschuldigt'
+                    >;
 
                     if (dayAbsences.length > 0) {
                       await store.updateAbsence(dayAbsences[0].id, { type: absenceType, reason });

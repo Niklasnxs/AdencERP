@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS absences (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     date TEXT NOT NULL,
     reason TEXT,
-    type TEXT NOT NULL CHECK (type IN ('Krankheit', 'Urlaub', 'Schule', 'Termin', 'Sonstiges')),
+    type TEXT NOT NULL CHECK (type IN ('Krank', 'Krankheit', 'Krank und unentschuldigt', 'Urlaub', 'Schule', 'Termin', 'Anwesenheit Homeoffice', 'Homeoffice', 'Arbeitsende', 'Sonstiges', 'Unentschuldigt')),
     created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(user_id, date)
 );

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, AlertCircle, FolderKanban, AlertTriangle, X, Mail, MessageSquare, Video } from 'lucide-react';
+import { Clock, AlertCircle, FolderKanban, AlertTriangle, X, Mail, Video } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
+import { APP_NAME, GENERAL_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
@@ -20,7 +21,6 @@ export function Dashboard() {
 
   if (!user) return null;
   const currentYear = new Date().getFullYear();
-
   const allUsers = store.getUsers();
   const allProjects = store.getProjects();
   const allTasks = store.getTasks();
@@ -116,7 +116,7 @@ export function Dashboard() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Übersicht</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{APP_NAME}</h1>
         <p className="text-gray-600 mt-1">
           Willkommen, {user.full_name}
         </p>
@@ -130,10 +130,19 @@ export function Dashboard() {
           <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
           <p className="text-base sm:text-lg font-semibold leading-relaxed">
             Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
-            (Anwesend, Homeoffice, Schule, Krankheit, Urlaub oder Sonstiges). Zeiterfassung in Stunden
+            (Anwesenheit, Anwesenheit Homeoffice, Schule, Krank, Urlaub, Unentschuldigt oder Arbeitsende). Zeiterfassung in Stunden
             ist vorerst deaktiviert.
           </p>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow mb-8 p-6 sm:p-8 min-h-[180px]">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Deine individuelle Übersicht</h2>
+        <textarea
+          value="Deine individuelle Übersicht …"
+          readOnly
+          className="w-full min-h-[100px] px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700"
+        />
       </div>
 
       {!isAdmin && (
@@ -165,7 +174,7 @@ export function Dashboard() {
           <h2 className="text-xl font-bold text-gray-900">Schnellzugriff</h2>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => {
                 if (user.email_access) {
@@ -187,29 +196,10 @@ export function Dashboard() {
 
             <button
               onClick={() => {
-                if (user.mattermost_url) {
-                  window.open(user.mattermost_url, '_blank');
-                } else {
-                  alert('Kein Mattermost-Link hinterlegt.');
-                }
-              }}
-              className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
-            >
-              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Mattermost</h3>
-                <p className="text-sm text-gray-600">Team Chat öffnen</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
                 if (user.zoom_link) {
                   window.open(user.zoom_link, '_blank');
                 } else {
-                  alert('Kein Zoom-Link hinterlegt.');
+                  alert('Kein persönlicher Zoom-Link hinterlegt.');
                 }
               }}
               className="flex items-center gap-4 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
@@ -218,8 +208,53 @@ export function Dashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Zoom Meeting</h3>
-                <p className="text-sm text-gray-600">Meeting beitreten</p>
+                <h3 className="font-semibold text-gray-900">Persönlicher Zoom-Link</h3>
+                <p className="text-sm text-gray-600">Direkt beitreten</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(GENERAL_ZOOM_URL, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200"
+            >
+              <div className="w-12 h-12 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Allgemeiner Zoom-Link</h3>
+                <p className="text-sm text-gray-600">Zoom öffnen</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(MATTERMOST_ADENCE.url, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+            >
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src={MATTERMOST_ADENCE.logo} alt="ADence Logo" className="w-8 h-8 object-contain bg-white rounded" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">{MATTERMOST_ADENCE.name}</h3>
+                <p className="text-sm text-gray-600">Mattermost öffnen</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(MATTERMOST_NXS.url, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors border border-violet-200"
+            >
+              <div className="w-12 h-12 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src={MATTERMOST_NXS.logo} alt="NXS Logo" className="w-8 h-8 object-contain bg-white rounded" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">{MATTERMOST_NXS.name}</h3>
+                <p className="text-sm text-gray-600">Mattermost öffnen</p>
               </div>
             </button>
 
@@ -243,6 +278,18 @@ export function Dashboard() {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow mb-8 p-6 sm:p-8 min-h-[180px]">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">E-Mail-Adresse einrichten</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Hier findest du die vom Admin hinterlegten E-Mail-Zugangsdaten.
+        </p>
+        <textarea
+          value={user.email_access || 'Keine E-Mail-Zugangsdaten hinterlegt.'}
+          readOnly
+          className="w-full min-h-[100px] px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700"
+        />
       </div>
 
       {showVacationModal && !isAdmin && (

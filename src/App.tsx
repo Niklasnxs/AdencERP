@@ -8,6 +8,7 @@ import { Projects } from './pages/Projects';
 import { Calendar } from './pages/Calendar';
 import { Users } from './pages/Users';
 import { Customers } from './pages/Customers';
+import { Rules } from './pages/Rules';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/projekte" element={<Projects />} />
         <Route path="/zeiterfassung" element={<Navigate to="/kalender" replace />} />
         <Route path="/kalender" element={<Calendar />} />
+        <Route path="/regelwerk" element={<Rules />} />
         <Route path="/benutzer" element={<Users />} />
         <Route path="/kunden" element={<Customers />} />
       </Route>

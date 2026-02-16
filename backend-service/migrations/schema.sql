@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS absences (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     reason TEXT,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('Krankheit', 'Urlaub', 'Schule', 'Termin', 'Sonstiges', 'Homeoffice', 'Unentschuldigt')),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('Krank', 'Krankheit', 'Krank und unentschuldigt', 'Urlaub', 'Schule', 'Termin', 'Anwesenheit Homeoffice', 'Homeoffice', 'Arbeitsende', 'Sonstiges', 'Unentschuldigt')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, date)
 );
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS absences (
 ALTER TABLE absences DROP CONSTRAINT IF EXISTS absences_type_check;
 ALTER TABLE absences
 ADD CONSTRAINT absences_type_check
-CHECK (type IN ('Krankheit', 'Urlaub', 'Schule', 'Termin', 'Sonstiges', 'Homeoffice', 'Unentschuldigt'));
+CHECK (type IN ('Krank', 'Krankheit', 'Krank und unentschuldigt', 'Urlaub', 'Schule', 'Termin', 'Anwesenheit Homeoffice', 'Homeoffice', 'Arbeitsende', 'Sonstiges', 'Unentschuldigt'));
 
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (

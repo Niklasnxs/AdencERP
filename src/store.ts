@@ -374,7 +374,7 @@ class DataStore {
     const hasTimeLog = this.cachedTimeLogs.some(
       tl => tl.user_id.toString() === userId.toString() && tl.date === date
     );
-    if (hasTimeLog) return 'Anwesend';
+    if (hasTimeLog) return 'Anwesenheit';
 
     const absence = this.cachedAbsences.find(
       a => a.user_id.toString() === userId.toString() && a.date === date
@@ -389,7 +389,7 @@ class DataStore {
       return 'Unentschuldigt';
     }
 
-    return 'Anwesend';
+    return 'Anwesenheit';
   }
 
   getAttendanceForPeriod(startDate: string, endDate: string): DailyAttendance[] {

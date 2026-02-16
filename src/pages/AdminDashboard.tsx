@@ -4,6 +4,7 @@ import { store } from '../store';
 import { AlertTriangle, X, Mail, MessageSquare, Video, Clock } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
+import { APP_NAME } from '../config/branding';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -125,7 +126,7 @@ export function AdminDashboard() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{APP_NAME}</h1>
         <p className="text-gray-600 mt-1">Anwesenheitsübersicht</p>
       </div>
 
@@ -134,7 +135,7 @@ export function AdminDashboard() {
           <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
           <p className="text-base sm:text-lg font-semibold leading-relaxed">
             Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
-            (Anwesend, Homeoffice, Schule, Krankheit, Urlaub oder Sonstiges). Zeiterfassung in Stunden
+            (Anwesenheit, Anwesenheit Homeoffice, Schule, Krank, Urlaub, Unentschuldigt oder Arbeitsende). Zeiterfassung in Stunden
             ist vorerst deaktiviert.
           </p>
         </div>

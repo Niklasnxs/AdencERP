@@ -4,12 +4,16 @@ import {
   LayoutDashboard, 
   Calendar, 
   Users,
+  BookOpen,
+  ExternalLink,
+  Clock,
   LogOut,
   Menu,
   X
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { cn } from '../utils';
+import { APP_LOGO_URL, APP_NAME } from '../config/branding';
 
 interface NavItem {
   label: string;
@@ -17,6 +21,7 @@ interface NavItem {
   icon: React.ReactNode;
   adminOnly?: boolean;
   highlight?: boolean;
+  external?: boolean;
 }
 
 export function Sidebar() {
@@ -25,20 +30,31 @@ export function Sidebar() {
 
   const navItems: NavItem[] = [
     {
-      label: 'Übersicht',
-      path: '/uebersicht',
-      icon: <LayoutDashboard className="w-5 h-5" />,
-    },
-    {
       label: 'Kalender',
       path: '/kalender',
       icon: <Calendar className="w-5 h-5" />,
+    },
+    {
+      label: 'Übersicht',
+      path: '/uebersicht',
+      icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
       label: 'Benutzer',
       path: '/benutzer',
       icon: <Users className="w-5 h-5" />,
       adminOnly: true,
+    },
+    {
+      label: 'Regelwerk',
+      path: '/regelwerk',
+      icon: <BookOpen className="w-5 h-5" />,
+    },
+    {
+      label: 'Stundenliste',
+      path: user?.stundenliste_link || '#',
+      icon: <Clock className="w-5 h-5" />,
+      external: true,
     },
   ];
 
@@ -50,9 +66,9 @@ export function Sidebar() {
     <>
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#1e3a8a] text-white px-4 py-3 flex items-center justify-between border-b border-blue-700">
-        <div>
-          <h1 className="text-xl font-bold">AdencERP</h1>
-          <p className="text-xs text-blue-200">TimeTrack</p>
+        <div className="flex items-center gap-2">
+          <img src={APP_LOGO_URL} alt="Logo" className="w-8 h-8 rounded-md object-cover bg-white" />
+          <h1 className="text-lg font-bold">{APP_NAME}</h1>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -87,14 +103,20 @@ export function Sidebar() {
         )}
       >
         <div className="p-6 border-b border-blue-700 lg:block hidden">
-          <h1 className="text-2xl font-bold">ADence Cockpit</h1>
+          <div className="flex items-center gap-3">
+            <img src={APP_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-lg object-cover bg-white" />
+            <h1 className="text-2xl font-bold">{APP_NAME}</h1>
+          </div>
         </div>
 
         {/* Mobile Header inside sidebar */}
         <div className="p-6 border-b border-blue-700 lg:hidden">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">ADence Cockpit</h1>
+              <div className="flex items-center gap-3">
+                <img src={APP_LOGO_URL} alt="Logo" className="w-9 h-9 rounded-lg object-cover bg-white" />
+                <h1 className="text-2xl font-bold">{APP_NAME}</h1>
+              </div>
             </div>
             <button
               onClick={closeMobileMenu}
@@ -109,23 +131,42 @@ export function Sidebar() {
           <ul className="space-y-2">
             {filteredNavItems.map((item) => (
               <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  onClick={closeMobileMenu}
-                  className={({ isActive }) =>
-                    cn(
+                {item.external ? (
+                  <a
+                    href={item.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={closeMobileMenu}
+                    className={cn(
                       'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                      isActive
-                        ? 'bg-blue-700 text-white'
-                        : item.highlight
-                          ? 'bg-yellow-200 text-yellow-900 hover:bg-yellow-300'
-                          : 'text-blue-100 hover:bg-blue-800'
-                    )
-                  }
-                >
-                  {item.icon}
-                  <span className="font-medium">{item.label}</span>
-                </NavLink>
+                      item.path === '#'
+                        ? 'opacity-60 cursor-not-allowed text-blue-100'
+                        : 'text-blue-100 hover:bg-blue-800'
+                    )}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                    <ExternalLink className="w-4 h-4 ml-auto" />
+                  </a>
+                ) : (
+                  <NavLink
+                    to={item.path}
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                        isActive
+                          ? 'bg-blue-700 text-white'
+                          : item.highlight
+                            ? 'bg-yellow-200 text-yellow-900 hover:bg-yellow-300'
+                            : 'text-blue-100 hover:bg-blue-800'
+                      )
+                    }
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.label}</span>
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>

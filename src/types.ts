@@ -72,10 +72,14 @@ export interface TimeLog {
 
 // Absence Types
 export type AbsenceType =
+  | 'Krank'
   | 'Krankheit'
+  | 'Krank und unentschuldigt'
   | 'Urlaub'
+  | 'Anwesenheit Homeoffice'
   | 'Homeoffice'
   | 'Schule'
+  | 'Arbeitsende'
   | 'Sonstiges'
   | 'Unentschuldigt';
 
@@ -89,7 +93,7 @@ export interface Absence {
 }
 
 // Attendance Status Types
-export type AttendanceStatus = 'Anwesend' | 'Entschuldigt' | 'Unentschuldigt' | 'Sonstiges';
+export type AttendanceStatus = 'Anwesenheit' | 'Entschuldigt' | 'Unentschuldigt' | 'Sonstiges';
 
 export interface DailyAttendance {
   user_id: string;
