@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { AlertTriangle, X, Mail, Video, Clock } from 'lucide-react';
+import { X, Mail, Video, Clock } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
 import { APP_NAME } from '../config/branding';
@@ -130,18 +130,6 @@ export function AdminDashboard() {
         <h1 className="text-3xl font-bold text-gray-900">{APP_NAME}</h1>
         <p className="text-gray-600 mt-1">Anwesenheitsübersicht</p>
       </div>
-
-      <div className="mb-8 rounded-xl border-2 border-amber-400 bg-amber-100 px-6 py-6 text-amber-900 shadow-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
-          <p className="text-base sm:text-lg font-semibold leading-relaxed">
-            Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
-            (Anwesenheit, Anwesenheit Homeoffice, Schule, Krank, Urlaub, Unentschuldigt oder Arbeitsende). Zeiterfassung in Stunden
-            ist vorerst deaktiviert.
-          </p>
-        </div>
-      </div>
-
       <div className="mb-8 flex flex-wrap gap-3">
         <button
           onClick={() => setShowVacationModal(true)}
@@ -213,7 +201,7 @@ export function AdminDashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Allghemeiner Zoom link</h3>
+                <h3 className="font-semibold text-gray-900">Allgemeiner Zoom Link</h3>
                 <p className="text-sm text-gray-600">Zoom öffnen</p>
               </div>
             </button>

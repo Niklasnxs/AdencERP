@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, AlertCircle, FolderKanban, AlertTriangle, X, Mail, Video } from 'lucide-react';
+import { Clock, AlertCircle, FolderKanban, X, Mail, Video } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
@@ -124,18 +124,6 @@ export function Dashboard() {
           {format(new Date(), 'EEEE, d. MMMM yyyy', { locale: de })}
         </p>
       </div>
-
-      <div className="mb-8 rounded-xl border-2 border-amber-400 bg-amber-100 px-6 py-6 text-amber-900 shadow-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="w-7 h-7 mt-0.5 flex-shrink-0" />
-          <p className="text-base sm:text-lg font-semibold leading-relaxed">
-            Wichtig: Dieses Tool wird aktuell ausschließlich für die Anwesenheitsdokumentation genutzt
-            (Anwesenheit, Anwesenheit Homeoffice, Schule, Krank, Urlaub, Unentschuldigt oder Arbeitsende). Zeiterfassung in Stunden
-            ist vorerst deaktiviert.
-          </p>
-        </div>
-      </div>
-
       <div className="bg-white rounded-xl shadow mb-8 p-6 sm:p-8 min-h-[180px]">
         <h2 className="text-xl font-bold text-gray-900 mb-3">Deine individuelle Übersicht</h2>
         <textarea
@@ -219,7 +207,7 @@ export function Dashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Allghemeiner Zoom link</h3>
+                <h3 className="font-semibold text-gray-900">Allgemeiner Zoom Link</h3>
                 <p className="text-sm text-gray-600">Zoom öffnen</p>
               </div>
             </button>
