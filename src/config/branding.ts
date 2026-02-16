@@ -11,7 +11,7 @@ export const MATTERMOST_ADENCE = {
 };
 
 export const MATTERMOST_NXS = {
-  name: 'Next STrategy AI Mattermost Kanals',
+  name: 'Next Strategy AI Mattermost Kanal',
   url: 'https://online-messenger.de/signup_user_complete/?id=htq6aki7t3f99rfxmqz97wzznw&md=link&sbr=sa',
   logo: 'https://adence.de/wp-content/uploads/2025/12/image-1.png',
 };
