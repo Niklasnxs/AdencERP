@@ -625,10 +625,14 @@ export function Calendar() {
       {/* Legend */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="font-bold text-gray-900 mb-4">Legende</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-green-500"></div>
             <span className="text-sm text-gray-700">Anwesenheit</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-purple-500"></div>
+            <span className="text-sm text-gray-700">Anwesenheit Homeoffice</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-red-500"></div>
@@ -639,24 +643,16 @@ export function Calendar() {
             <span className="text-sm text-gray-700">Krank und unentschuldigt</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-red-500 border-2 border-red-700"></div>
+            <span className="text-sm text-gray-700">Unentschuldigt</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-blue-500"></div>
             <span className="text-sm text-gray-700">Urlaub</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-purple-500"></div>
-            <span className="text-sm text-gray-700">Anwesenheit Homeoffice</span>
-          </div>
-          <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-orange-500"></div>
             <span className="text-sm text-gray-700">Schule</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-slate-500"></div>
-            <span className="text-sm text-gray-700">Arbeitsende</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-500 border-2 border-red-700"></div>
-            <span className="text-sm text-gray-700">Unentschuldigt</span>
           </div>
         </div>
       </div>
