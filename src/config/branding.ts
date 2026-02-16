@@ -1,4 +1,4 @@
-export const APP_NAME = 'Devin Cockpit';
+export const APP_NAME = 'Devven Cockpit';
 export const APP_LOGO_URL = 'https://adence.de/wp-content/uploads/2026/02/image-1.png';
 
 export const GENERAL_ZOOM_URL = 'https://zoom.us/';
