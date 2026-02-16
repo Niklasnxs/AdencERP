@@ -19,8 +19,6 @@ export function Users() {
     birthday: '',
     employment_type: '' as EmploymentType | '',
     email_access: '',
-    mattermost_url: '',
-    zoom_link: '',
     stundenliste_link: '',
   });
 
@@ -50,8 +48,6 @@ export function Users() {
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
         email_access: formData.email_access || undefined,
-        mattermost_url: formData.mattermost_url || undefined,
-        zoom_link: formData.zoom_link || undefined,
         stundenliste_link: formData.stundenliste_link || undefined,
       };
       
@@ -73,8 +69,6 @@ export function Users() {
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
         email_access: formData.email_access || undefined,
-        mattermost_url: formData.mattermost_url || undefined,
-        zoom_link: formData.zoom_link || undefined,
         stundenliste_link: formData.stundenliste_link || undefined,
       });
     }
@@ -88,8 +82,6 @@ export function Users() {
       birthday: '',
       employment_type: '',
       email_access: '',
-      mattermost_url: '',
-      zoom_link: '',
       stundenliste_link: '',
     });
     setShowForm(false);
@@ -108,8 +100,6 @@ export function Users() {
       birthday: user.birthday || '',
       employment_type: user.employment_type || '',
       email_access: user.email_access || '',
-      mattermost_url: user.mattermost_url || '',
-      zoom_link: user.zoom_link || '',
       stundenliste_link: user.stundenliste_link || '',
     });
     setShowForm(true);
@@ -153,8 +143,6 @@ export function Users() {
               birthday: '',
               employment_type: '',
               email_access: '',
-              mattermost_url: '',
-              zoom_link: '',
               stundenliste_link: '',
             });
             setShowForm(true);
@@ -298,38 +286,6 @@ export function Users() {
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Email-Zugangsinformationen (wird Mitarbeiter im Dashboard angezeigt)
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mattermost URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.mattermost_url}
-                      onChange={(e) => setFormData({ ...formData, mattermost_url: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      placeholder="https://mattermost.example.com/..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Link zum Mattermost Team Chat
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Zoom Meeting Link
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.zoom_link}
-                      onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      placeholder="https://zoom.us/j/..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Persönlicher Zoom Meeting Link
                     </p>
                   </div>
 

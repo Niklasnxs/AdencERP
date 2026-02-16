@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { AlertTriangle, X, Mail, MessageSquare, Video, Clock } from 'lucide-react';
+import { AlertTriangle, X, Mail, Video, Clock } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
 import { APP_NAME } from '../config/branding';
+import { GENERAL_ZOOM_URL, MARVIN_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -167,7 +168,7 @@ export function AdminDashboard() {
           <h2 className="text-xl font-bold text-gray-900">Schnellzugriff</h2>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => {
                 if (user.email_access) {
@@ -189,30 +190,7 @@ export function AdminDashboard() {
 
             <button
               onClick={() => {
-                if (user.mattermost_url) {
-                  window.open(user.mattermost_url, '_blank');
-                } else {
-                  alert('Kein Mattermost-Link hinterlegt.');
-                }
-              }}
-              className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
-            >
-              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <MessageSquare className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Mattermost</h3>
-                <p className="text-sm text-gray-600">Team Chat öffnen</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                if (user.zoom_link) {
-                  window.open(user.zoom_link, '_blank');
-                } else {
-                  alert('Kein Zoom-Link hinterlegt.');
-                }
+                window.open(MARVIN_ZOOM_URL, '_blank');
               }}
               className="flex items-center gap-4 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
             >
@@ -220,8 +198,53 @@ export function AdminDashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Zoom Meeting</h3>
-                <p className="text-sm text-gray-600">Meeting beitreten</p>
+                <h3 className="font-semibold text-gray-900">Zoomcall mit Marvin</h3>
+                <p className="text-sm text-gray-600">Direkt beitreten</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(GENERAL_ZOOM_URL, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200"
+            >
+              <div className="w-12 h-12 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">Allghemeiner Zoom link</h3>
+                <p className="text-sm text-gray-600">Zoom öffnen</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(MATTERMOST_ADENCE.url, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+            >
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src={MATTERMOST_ADENCE.logo} alt="ADence Logo" className="w-8 h-8 object-contain bg-white rounded" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">{MATTERMOST_ADENCE.name}</h3>
+                <p className="text-sm text-gray-600">Mattermost öffnen</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(MATTERMOST_NXS.url, '_blank');
+              }}
+              className="flex items-center gap-4 p-4 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors border border-violet-200"
+            >
+              <div className="w-12 h-12 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src={MATTERMOST_NXS.logo} alt="NXS Logo" className="w-8 h-8 object-contain bg-white rounded" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900">{MATTERMOST_NXS.name}</h3>
+                <p className="text-sm text-gray-600">Mattermost öffnen</p>
               </div>
             </button>
 

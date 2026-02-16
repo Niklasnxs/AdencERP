@@ -5,7 +5,7 @@ import { Clock, AlertCircle, FolderKanban, AlertTriangle, X, Mail, Video } from 
 import { eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
-import { APP_NAME, GENERAL_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
+import { APP_NAME, GENERAL_ZOOM_URL, MARVIN_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
@@ -196,11 +196,7 @@ export function Dashboard() {
 
             <button
               onClick={() => {
-                if (user.zoom_link) {
-                  window.open(user.zoom_link, '_blank');
-                } else {
-                  alert('Kein persönlicher Zoom-Link hinterlegt.');
-                }
+                window.open(MARVIN_ZOOM_URL, '_blank');
               }}
               className="flex items-center gap-4 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
             >
@@ -208,7 +204,7 @@ export function Dashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Persönlicher Zoom-Link</h3>
+                <h3 className="font-semibold text-gray-900">Zoomcall mit Marvin</h3>
                 <p className="text-sm text-gray-600">Direkt beitreten</p>
               </div>
             </button>
@@ -223,7 +219,7 @@ export function Dashboard() {
                 <Video className="w-6 h-6 text-white" />
               </div>
               <div className="text-left flex-1">
-                <h3 className="font-semibold text-gray-900">Allgemeiner Zoom-Link</h3>
+                <h3 className="font-semibold text-gray-900">Allghemeiner Zoom link</h3>
                 <p className="text-sm text-gray-600">Zoom öffnen</p>
               </div>
             </button>
