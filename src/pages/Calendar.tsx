@@ -12,7 +12,7 @@ export function Calendar() {
   const { user, isAdmin } = useAuth();
   type EmployeeDayStatus =
     | 'Anwesenheit'
-    | 'Anwesenheit Homeoffice'
+    | 'Homeoffice'
     | 'Krank'
     | 'Krank und unentschuldigt'
     | 'Unentschuldigt'
@@ -249,7 +249,7 @@ export function Calendar() {
         await store.createAbsence({
           user_id: homeofficeEmployeeId,
           date: dateString,
-          type: 'Anwesenheit Homeoffice',
+          type: 'Homeoffice',
           reason: homeofficeReason.trim() || '-',
         });
       } catch (error) {
@@ -341,7 +341,7 @@ export function Calendar() {
 
   const normalizeAbsenceType = (type: AbsenceType): AbsenceType => {
     if (type === 'Krankheit') return 'Krank';
-    if (type === 'Homeoffice') return 'Anwesenheit Homeoffice';
+    if (type === 'Anwesenheit Homeoffice') return 'Homeoffice';
     if (type === 'Sonstiges') return 'Arbeitsende';
     return type;
   };
@@ -456,7 +456,7 @@ export function Calendar() {
                   <option value="Krank">Krank</option>
                   <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                   <option value="Urlaub">Urlaub</option>
-                  <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
+                  <option value="Homeoffice">Homeoffice</option>
                   <option value="Schule">Schule</option>
                   <option value="Arbeitsende">Arbeitsende</option>
                   <option value="Unentschuldigt">Unentschuldigt</option>
@@ -854,7 +854,7 @@ export function Calendar() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-purple-500"></div>
-            <span className="text-sm text-gray-700">Anwesenheit Homeoffice</span>
+            <span className="text-sm text-gray-700">Homeoffice</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-red-500"></div>
@@ -1001,10 +1001,7 @@ export function Calendar() {
                       >
                         <div
                           onClick={() => {
-                            if (isAdmin && !isDisabled) {
-                              setSelectedDay({ date: dateStr, userId: employee.id });
-                              setShowDayDetailsModal(true);
-                            } else if (!isAdmin && !isDisabled) {
+                            if (!isDisabled) {
                               const employeeAbsence = absencesData.find(
                                 (abs) => sameUserId(abs.user_id, employee.id) && abs.date === dateStr
                               );
@@ -1014,7 +1011,7 @@ export function Calendar() {
 
                               let initialStatus: EmployeeDayStatus = '';
                               const normalizedType = employeeAbsence ? normalizeAbsenceType(employeeAbsence.type) : '';
-                              if (normalizedType === 'Anwesenheit Homeoffice') initialStatus = 'Anwesenheit Homeoffice';
+                              if (normalizedType === 'Homeoffice') initialStatus = 'Homeoffice';
                               if (normalizedType === 'Schule') initialStatus = 'Schule';
                               if (normalizedType === 'Krank') initialStatus = 'Krank';
                               if (normalizedType === 'Krank und unentschuldigt') initialStatus = 'Krank und unentschuldigt';
@@ -1139,7 +1136,7 @@ export function Calendar() {
                                   <option value="Krank">Krank</option>
                                   <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                                   <option value="Urlaub">Urlaub</option>
-                                  <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
+                                  <option value="Homeoffice">Homeoffice</option>
                                   <option value="Schule">Schule</option>
                                   <option value="Arbeitsende">Arbeitsende</option>
                                 </select>
@@ -1357,7 +1354,7 @@ export function Calendar() {
                                 <option value="Krank">Krank</option>
                                 <option value="Krank und unentschuldigt">Krank und unentschuldigt</option>
                                 <option value="Urlaub">Urlaub</option>
-                                <option value="Anwesenheit Homeoffice">Anwesenheit Homeoffice</option>
+                                <option value="Homeoffice">Homeoffice</option>
                                 <option value="Schule">Schule</option>
                                 <option value="Arbeitsende">Arbeitsende</option>
                               </select>
@@ -1464,7 +1461,7 @@ export function Calendar() {
       )}
 
       {/* Employee Day Status Modal */}
-      {showEmployeeDayModal && selectedDay && !isAdmin && (
+      {showEmployeeDayModal && selectedDay && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-lg">
             <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
@@ -1495,7 +1492,7 @@ export function Calendar() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {([
                     'Anwesenheit',
-                    'Anwesenheit Homeoffice',
+                    'Homeoffice',
                     'Krank',
                     'Krank und unentschuldigt',
                     'Unentschuldigt',
@@ -1597,7 +1594,7 @@ export function Calendar() {
                     const reason = employeeDayReason.trim() || '-';
                     const absenceType = employeeDayStatus as Extract<
                       AbsenceType,
-                      'Anwesenheit Homeoffice' | 'Schule' | 'Krank' | 'Krank und unentschuldigt' | 'Urlaub' | 'Arbeitsende' | 'Unentschuldigt'
+                      'Homeoffice' | 'Schule' | 'Krank' | 'Krank und unentschuldigt' | 'Urlaub' | 'Arbeitsende' | 'Unentschuldigt'
                     >;
 
                     if (dayAbsences.length > 0) {
