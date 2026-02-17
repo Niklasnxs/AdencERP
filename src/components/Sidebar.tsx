@@ -51,6 +51,11 @@ export function Sidebar() {
       icon: <BookOpen className="w-5 h-5" />,
     },
     {
+      label: 'Anleitung Cockpit',
+      path: '/anleitung-cockpit',
+      icon: <BookOpen className="w-5 h-5" />,
+    },
+    {
       label: 'Stundenliste',
       path: user?.stundenliste_link || '#',
       icon: <Clock className="w-5 h-5" />,
