@@ -143,10 +143,19 @@ app.post('/api/users', authenticateToken, async (req, res) => {
     const { email, password, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await db.query(
-      'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at',
-      [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, email_login || null, email_password || null, mattermost_url || null, zoom_link || null, stundenliste_link || null]
-    );
+    let result;
+    try {
+      result = await db.query(
+        'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at',
+        [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, email_login || null, email_password || null, mattermost_url || null, zoom_link || null, stundenliste_link || null]
+      );
+    } catch (error) {
+      if (error?.code !== '42703') throw error;
+      result = await db.query(
+        'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at',
+        [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, mattermost_url || null, zoom_link || null, stundenliste_link || null]
+      );
+    }
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -226,10 +235,71 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 
     values.push(req.params.id);
 
-    const result = await db.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at`,
-      values
-    );
+    let result;
+    try {
+      result = await db.query(
+        `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at`,
+        values
+      );
+    } catch (error) {
+      if (error?.code !== '42703') throw error;
+
+      const legacyUpdates = [];
+      const legacyValues = [];
+      let legacyParam = 1;
+
+      if (email) {
+        legacyUpdates.push(`email = $${legacyParam++}`);
+        legacyValues.push(email);
+      }
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        legacyUpdates.push(`password = $${legacyParam++}`);
+        legacyValues.push(hashedPassword);
+      }
+      if (full_name) {
+        legacyUpdates.push(`full_name = $${legacyParam++}`);
+        legacyValues.push(full_name);
+      }
+      if (role) {
+        legacyUpdates.push(`role = $${legacyParam++}`);
+        legacyValues.push(role);
+      }
+      if (address !== undefined) {
+        legacyUpdates.push(`address = $${legacyParam++}`);
+        legacyValues.push(address || null);
+      }
+      if (birthday !== undefined) {
+        legacyUpdates.push(`birthday = $${legacyParam++}`);
+        legacyValues.push(birthday || null);
+      }
+      if (employment_type !== undefined) {
+        legacyUpdates.push(`employment_type = $${legacyParam++}`);
+        legacyValues.push(employment_type || null);
+      }
+      if (email_access !== undefined) {
+        legacyUpdates.push(`email_access = $${legacyParam++}`);
+        legacyValues.push(email_access || null);
+      }
+      if (mattermost_url !== undefined) {
+        legacyUpdates.push(`mattermost_url = $${legacyParam++}`);
+        legacyValues.push(mattermost_url || null);
+      }
+      if (zoom_link !== undefined) {
+        legacyUpdates.push(`zoom_link = $${legacyParam++}`);
+        legacyValues.push(zoom_link || null);
+      }
+      if (stundenliste_link !== undefined) {
+        legacyUpdates.push(`stundenliste_link = $${legacyParam++}`);
+        legacyValues.push(stundenliste_link || null);
+      }
+
+      legacyValues.push(req.params.id);
+      result = await db.query(
+        `UPDATE users SET ${legacyUpdates.join(', ')} WHERE id = $${legacyParam} RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at`,
+        legacyValues
+      );
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
-import { Calendar as CalendarIcon, X, Edit, Check } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Edit } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Customer } from '../types';
@@ -800,6 +800,9 @@ export function Calendar() {
                       log => sameUserId(log.user_id, employee.id) && log.date === dateStr
                     );
                     const hasTimeLog = dayTimeLogs.length > 0;
+                    const isMonthConfirmedPresent = dayTimeLogs.some(
+                      (log) => (log.notes || '').includes('Monatsbestaetigung')
+                    );
                     
                     const status = getAttendanceStatus(employee.id, dateStr);
                     
@@ -884,7 +887,7 @@ export function Calendar() {
                               setShowEmployeeDayModal(true);
                             }
                           }}
-                          className={`w-6 h-6 rounded mx-auto ${statusColor} ${
+                          className={`w-6 h-6 rounded mx-auto flex items-center justify-center ${statusColor} ${
                             !isDisabled ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all' : ''
                           }`}
                           title={titleText}
@@ -892,10 +895,8 @@ export function Calendar() {
                           {dayAbsence?.type === 'Unentschuldigt' && (
                             <span className="text-white text-[10px] font-bold leading-none">✕</span>
                           )}
-                          {!dayAbsence && hasTimeLog && (
-                            <span className="mx-auto mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white/95 shadow-sm">
-                              <Check className="h-3 w-3 text-green-700" strokeWidth={3} />
-                            </span>
+                          {!dayAbsence && isMonthConfirmedPresent && (
+                            <span className="text-white text-[14px] font-bold leading-none">✓</span>
                           )}
                         </div>
                       </td>
