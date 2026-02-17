@@ -10,8 +10,14 @@ interface EmailAccessModalProps {
 export function EmailAccessModal({ user, isOpen, onClose }: EmailAccessModalProps) {
   if (!isOpen) return null;
 
-  const loginEmail = user.email_login || user.email || 'Nicht hinterlegt';
-  const loginPassword = user.email_password || 'Nicht hinterlegt';
+  const legacyAccess = user.email_access || '';
+  const legacyLoginMatch = legacyAccess.match(/LOGIN_EMAIL:(.*)/);
+  const legacyPasswordMatch = legacyAccess.match(/LOGIN_PASSWORD:(.*)/);
+  const legacyLogin = legacyLoginMatch ? legacyLoginMatch[1].trim() : '';
+  const legacyPassword = legacyPasswordMatch ? legacyPasswordMatch[1].trim() : '';
+
+  const loginEmail = user.email_login || legacyLogin || user.email || 'Nicht hinterlegt';
+  const loginPassword = user.email_password || legacyPassword || 'Nicht hinterlegt';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
