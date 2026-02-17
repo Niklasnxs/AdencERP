@@ -347,17 +347,17 @@ export function Calendar() {
   };
 
   const getAttendanceStatus = (userId: string, date: string): AttendanceStatus => {
-    const hasTimeLog = timeLogsData.some(
-      log => sameUserId(log.user_id, userId) && log.date === date
-    );
-    if (hasTimeLog) return 'Anwesenheit';
-
     const absence = absencesData.find(
       abs => sameUserId(abs.user_id, userId) && abs.date === date
     );
     if (absence) {
       return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
     }
+
+    const hasTimeLog = timeLogsData.some(
+      log => sameUserId(log.user_id, userId) && log.date === date
+    );
+    if (hasTimeLog) return 'Anwesenheit';
 
     return 'Sonstiges';
   };
@@ -962,8 +962,13 @@ export function Calendar() {
                         titleText = `${normalizedType}`;
                       }
                     } else if (hasTimeLog) {
-                      statusColor = 'bg-green-500';
-                      titleText = 'Anwesenheit';
+                      if (isMonthConfirmedPresent) {
+                        statusColor = 'bg-emerald-600';
+                        titleText = 'Anwesenheit bestaetigt';
+                      } else {
+                        statusColor = 'bg-green-500';
+                        titleText = 'Anwesenheit';
+                      }
                     } else if (isHoliday) {
                       statusColor = 'bg-gray-400';
                       titleText = holidayName ? `Feiertag: ${holidayName}` : 'Feiertag';
@@ -1032,7 +1037,7 @@ export function Calendar() {
                           {dayAbsence?.type === 'Unentschuldigt' && (
                             <span className="text-white text-[10px] font-bold leading-none">✕</span>
                           )}
-                          {!dayAbsence && isMonthConfirmedPresent && (
+                          {isMonthConfirmedPresent && (
                             <span className="text-white text-[14px] font-bold leading-none">✓</span>
                           )}
                         </div>
@@ -1227,6 +1232,28 @@ export function Calendar() {
                               Abbrechen
                             </button>
                           </div>
+                          <button
+                            onClick={async () => {
+                              for (const log of timeLogs) {
+                                await store.deleteTimeLog(log.id);
+                              }
+                              const dayAbsences = absencesData.filter(
+                                (abs) => sameUserId(abs.user_id, selectedDay.userId) && abs.date === selectedDay.date
+                              );
+                              for (const absence of dayAbsences) {
+                                await store.deleteAbsence(absence.id);
+                              }
+                              await store.initialize();
+                              setIsChangingStatus(false);
+                              setShowDayDetailsModal(false);
+                              setSelectedDay(null);
+                              setTargetReason('');
+                              setRefreshKey((prev) => prev + 1);
+                            }}
+                            className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700"
+                          >
+                            Status vollständig löschen
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1391,7 +1418,32 @@ export function Calendar() {
                   </div>
 
                   {/* Footer */}
-                  <div className="p-6 border-t bg-gray-50">
+                  <div className="p-6 border-t bg-gray-50 space-y-2">
+                    <button
+                      onClick={async () => {
+                        const dayTimeLogs = timeLogsData.filter(
+                          (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
+                        );
+                        const dayAbsences = absencesData.filter(
+                          (abs) => sameUserId(abs.user_id, selectedDay.userId) && abs.date === selectedDay.date
+                        );
+                        for (const log of dayTimeLogs) {
+                          await store.deleteTimeLog(log.id);
+                        }
+                        for (const absence of dayAbsences) {
+                          await store.deleteAbsence(absence.id);
+                        }
+                        await store.initialize();
+                        setShowDayDetailsModal(false);
+                        setSelectedDay(null);
+                        setIsEditingAbsence(false);
+                        setEditAbsenceReason('');
+                        setRefreshKey((prev) => prev + 1);
+                      }}
+                      className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                      Status vollständig löschen
+                    </button>
                     <button
                       onClick={() => {
                         setShowDayDetailsModal(false);
@@ -1483,6 +1535,34 @@ export function Calendar() {
             </div>
 
             <div className="p-6 border-t bg-gray-50 flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!selectedDay) return;
+                  const dayAbsences = absencesData.filter(
+                    (abs) => sameUserId(abs.user_id, selectedDay.userId) && abs.date === selectedDay.date
+                  );
+                  const dayTimeLogs = timeLogsData.filter(
+                    (log) => sameUserId(log.user_id, selectedDay.userId) && log.date === selectedDay.date
+                  );
+
+                  for (const log of dayTimeLogs) {
+                    await store.deleteTimeLog(log.id);
+                  }
+                  for (const absence of dayAbsences) {
+                    await store.deleteAbsence(absence.id);
+                  }
+
+                  await store.initialize();
+                  setRefreshKey((prev) => prev + 1);
+                  setShowEmployeeDayModal(false);
+                  setSelectedDay(null);
+                  setEmployeeDayStatus('');
+                  setEmployeeDayReason('');
+                }}
+                className="bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700"
+              >
+                Löschen
+              </button>
               <button
                 onClick={async () => {
                   if (!selectedDay || !employeeDayStatus) {

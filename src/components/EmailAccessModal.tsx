@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import type { User } from '../types';
+import { store } from '../store';
 
 interface EmailAccessModalProps {
   user: User;
@@ -10,14 +11,15 @@ interface EmailAccessModalProps {
 export function EmailAccessModal({ user, isOpen, onClose }: EmailAccessModalProps) {
   if (!isOpen) return null;
 
-  const legacyAccess = user.email_access || '';
+  const latestUser = store.getUserById(user.id) || user;
+  const legacyAccess = latestUser.email_access || '';
   const legacyLoginMatch = legacyAccess.match(/LOGIN_EMAIL:(.*)/);
   const legacyPasswordMatch = legacyAccess.match(/LOGIN_PASSWORD:(.*)/);
   const legacyLogin = legacyLoginMatch ? legacyLoginMatch[1].trim() : '';
   const legacyPassword = legacyPasswordMatch ? legacyPasswordMatch[1].trim() : '';
 
-  const loginEmail = user.email_login || legacyLogin || user.email || 'Nicht hinterlegt';
-  const loginPassword = user.email_password || legacyPassword || 'Nicht hinterlegt';
+  const loginEmail = latestUser.email_login || legacyLogin || latestUser.email || 'Nicht hinterlegt';
+  const loginPassword = latestUser.email_password || legacyPassword || 'Nicht hinterlegt';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -34,7 +36,7 @@ export function EmailAccessModal({ user, isOpen, onClose }: EmailAccessModalProp
         </div>
 
         <div className="max-h-[75vh] overflow-y-auto p-6 text-sm leading-7 text-gray-800 space-y-4">
-          <p>Hallo {user.full_name},</p>
+          <p>Hallo {latestUser.full_name},</p>
           <p>anbei die wichtigsten Zugaenge fuer die Kommunikation.</p>
 
           <div>
