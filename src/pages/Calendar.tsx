@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
@@ -60,8 +60,8 @@ export function Calendar() {
 
   if (!user) return null;
 
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
+  const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
+  const monthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const getEasterSunday = (year: number) => {
@@ -223,6 +223,9 @@ export function Calendar() {
     }, 500);
   };
 
+  const monthStartStr = useMemo(() => format(monthStart, 'yyyy-MM-dd'), [monthStart]);
+  const monthEndStr = useMemo(() => format(monthEnd, 'yyyy-MM-dd'), [monthEnd]);
+
   useEffect(() => {
     const normalizeDate = (value: string) => {
       if (!value) return value;
@@ -231,8 +234,8 @@ export function Calendar() {
 
     const loadCalendarData = async () => {
       try {
-        const start = format(monthStart, 'yyyy-MM-dd');
-        const end = format(monthEnd, 'yyyy-MM-dd');
+        const start = monthStartStr;
+        const end = monthEndStr;
         const [users, projects, customers, timeLogs, absences] = await Promise.all([
           usersAPI.getAll(),
           projectsAPI.getAll(),
@@ -258,7 +261,7 @@ export function Calendar() {
       }
     };
     loadCalendarData();
-  }, [refreshKey, monthStart, monthEnd]);
+  }, [refreshKey, monthStartStr, monthEndStr]);
 
   const sameUserId = (a: string | number, b: string | number) => {
     return a?.toString() === b?.toString();
