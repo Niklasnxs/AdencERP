@@ -312,7 +312,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
         legacyUpdates.push(`employment_type = $${legacyParam++}`);
         legacyValues.push(employment_type || null);
       }
-      if (email_access !== undefined) {
+      if (email_access !== undefined || email_login !== undefined || email_password !== undefined) {
         legacyUpdates.push(`email_access = $${legacyParam++}`);
         legacyValues.push(buildLegacyEmailAccess(email_access, email_login, email_password));
       }

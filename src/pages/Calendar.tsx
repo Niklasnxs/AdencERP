@@ -41,11 +41,16 @@ export function Calendar() {
   const [vacationEndDate, setVacationEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [vacationReason, setVacationReason] = useState('');
   const [showVacationModal, setShowVacationModal] = useState(false);
+  const [showHomeofficeModal, setShowHomeofficeModal] = useState(false);
   const [schoolEmployeeId, setSchoolEmployeeId] = useState<string>('');
   const [schoolStartDate, setSchoolStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolReason, setSchoolReason] = useState('');
   const [showSchoolModal, setShowSchoolModal] = useState(false);
+  const [homeofficeEmployeeId, setHomeofficeEmployeeId] = useState<string>('');
+  const [homeofficeStartDate, setHomeofficeStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [homeofficeEndDate, setHomeofficeEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [homeofficeReason, setHomeofficeReason] = useState('');
   const [absenceType, setAbsenceType] = useState<AbsenceType>('Krank');
   const [absenceReason, setAbsenceReason] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
@@ -224,6 +229,49 @@ export function Calendar() {
     await store.initialize();
     setTimeout(() => {
       setRefreshKey(prev => prev + 1);
+    }, 500);
+  };
+
+  const handleCreateHomeofficeRange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!homeofficeEmployeeId) {
+      alert('Bitte wählen Sie einen Mitarbeiter aus');
+      return;
+    }
+    const start = new Date(homeofficeStartDate);
+    const end = new Date(homeofficeEndDate);
+    const days = eachDayOfInterval({ start, end });
+    const failedDates: string[] = [];
+
+    for (const day of days) {
+      const dateString = format(day, 'yyyy-MM-dd');
+      try {
+        await store.createAbsence({
+          user_id: homeofficeEmployeeId,
+          date: dateString,
+          type: 'Anwesenheit Homeoffice',
+          reason: homeofficeReason.trim() || '-',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('Absence already exists')) {
+          continue;
+        }
+        failedDates.push(dateString);
+      }
+    }
+
+    if (failedDates.length > 0) {
+      alert(`Einige Tage konnten nicht gespeichert werden: ${failedDates.join(', ')}`);
+    }
+
+    setHomeofficeEmployeeId('');
+    setHomeofficeStartDate(format(new Date(), 'yyyy-MM-dd'));
+    setHomeofficeEndDate(format(new Date(), 'yyyy-MM-dd'));
+    setHomeofficeReason('');
+    setShowHomeofficeModal(false);
+    await store.initialize();
+    setTimeout(() => {
+      setRefreshKey((prev) => prev + 1);
     }, 500);
   };
 
@@ -457,11 +505,100 @@ export function Calendar() {
             Urlaub eintragen (Zeitraum)
           </button>
           <button
+            onClick={() => setShowHomeofficeModal(true)}
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
+          >
+            Homeoffice eintragen (Zeitraum)
+          </button>
+          <button
             onClick={() => setShowSchoolModal(true)}
             className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
           >
             Schultage eintragen (Zeitraum)
           </button>
+        </div>
+      )}
+
+      {isAdmin && showHomeofficeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Homeoffice eintragen (Zeitraum)</h2>
+              <button
+                onClick={() => setShowHomeofficeModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateHomeofficeRange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Mitarbeiter</label>
+                <select
+                  value={homeofficeEmployeeId}
+                  onChange={(e) => setHomeofficeEmployeeId(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {usersData.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Startdatum</label>
+                  <input
+                    type="date"
+                    value={homeofficeStartDate}
+                    onChange={(e) => setHomeofficeStartDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Enddatum</label>
+                  <input
+                    type="date"
+                    value={homeofficeEndDate}
+                    min={homeofficeStartDate}
+                    onChange={(e) => setHomeofficeEndDate(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Grund (optional)</label>
+                <textarea
+                  value={homeofficeReason}
+                  onChange={(e) => setHomeofficeReason(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg h-20"
+                  placeholder="Optionaler Grund für Homeoffice"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600">
+                  Homeoffice speichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHomeofficeEmployeeId('');
+                    setHomeofficeStartDate(format(new Date(), 'yyyy-MM-dd'));
+                    setHomeofficeEndDate(format(new Date(), 'yyyy-MM-dd'));
+                    setHomeofficeReason('');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
