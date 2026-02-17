@@ -281,7 +281,7 @@ export function Calendar() {
   const handleConfirmCurrentMonthAttendance = async () => {
     const selectedMonthDate = new Date(`${confirmMonthValue}-01`);
     const monthLabel = format(selectedMonthDate, 'MMMM yyyy', { locale: de });
-    const confirmed = window.confirm(`Soll ${monthLabel} als bestaetigt anwesend fuer dich eingetragen werden?`);
+    const confirmed = window.confirm(`Soll ${monthLabel} als bestätigt anwesend für dich eingetragen werden?`);
     if (!confirmed) return;
 
     setIsConfirmingMonth(true);
@@ -290,7 +290,7 @@ export function Calendar() {
       await store.initialize();
       setRefreshKey((prev) => prev + 1);
       alert(
-        `Monat fuer dich bestaetigt. Neu gesetzt: ${result.created}, uebersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
+        `Monat für dich bestätigt. Neu gesetzt: ${result.created}, übersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
       );
       setShowConfirmMonthModal(false);
     } finally {
@@ -611,7 +611,7 @@ export function Calendar() {
           disabled={isConfirmingMonth}
           className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
         >
-          {isConfirmingMonth ? 'Bestaetige...' : 'Monat bestaetigen'}
+          {isConfirmingMonth ? 'Bestätige...' : 'Monat bestätigen'}
         </button>
       </div>
 
@@ -619,7 +619,7 @@ export function Calendar() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Monat bestaetigen</h2>
+              <h2 className="text-xl font-bold text-gray-900">Monat bestätigen</h2>
               <button
                 onClick={() => setShowConfirmMonthModal(false)}
                 className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
@@ -628,7 +628,7 @@ export function Calendar() {
               </button>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Diese Aktion gilt nur fuer deinen Account und kann auch rueckwirkend ausgefuehrt werden.
+              Diese Aktion gilt nur für deinen Account und kann auch rückwirkend ausgeführt werden.
             </p>
             <div className="space-y-4">
               <div>
@@ -646,7 +646,7 @@ export function Calendar() {
                   disabled={isConfirmingMonth}
                   className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {isConfirmingMonth ? 'Speichert...' : 'Bestaetigen'}
+                  {isConfirmingMonth ? 'Speichert...' : 'Bestätigen'}
                 </button>
                 <button
                   onClick={() => setShowConfirmMonthModal(false)}
@@ -938,7 +938,7 @@ export function Calendar() {
                     );
                     const hasTimeLog = dayTimeLogs.length > 0;
                     const isMonthConfirmedPresent = dayTimeLogs.some(
-                      (log) => (log.notes || '').includes('Monatsbestaetigung')
+                      (log) => (log.notes || '').includes('Monatsbest')
                     );
                     
                     const status = getAttendanceStatus(employee.id, dateStr);
@@ -964,7 +964,7 @@ export function Calendar() {
                     } else if (hasTimeLog) {
                       if (isMonthConfirmedPresent) {
                         statusColor = 'bg-emerald-600';
-                        titleText = 'Anwesenheit bestaetigt';
+                        titleText = 'Anwesenheit bestätigt';
                       } else {
                         statusColor = 'bg-green-500';
                         titleText = 'Anwesenheit';

@@ -50,7 +50,7 @@ export async function fillMonthAsPresentForUser(userId: string, monthDate: Date)
       customer_name: 'Statusmeldung',
       date,
       hours: 0,
-      notes: `Monatsbestaetigung ${monthPrefix}: Bestaetigt anwesend`,
+      notes: `Monatsbestätigung ${monthPrefix}: Bestätigt anwesend`,
     });
     created += 1;
   }

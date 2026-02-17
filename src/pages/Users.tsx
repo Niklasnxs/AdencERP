@@ -301,7 +301,7 @@ export function Users() {
                       value={formData.email_password}
                       onChange={(e) => setFormData({ ...formData, email_password: e.target.value })}
                       className="w-full px-4 py-2 border rounded-lg"
-                      placeholder="Passwort fuer Mail-Login"
+                      placeholder="Passwort für Mail-Login"
                     />
                   </div>
 

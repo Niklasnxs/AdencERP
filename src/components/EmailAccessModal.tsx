@@ -29,7 +29,7 @@ export function EmailAccessModal({ user, isOpen, onClose }: EmailAccessModalProp
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
-            aria-label="Popup schliessen"
+            aria-label="Popup schließen"
           >
             <X className="h-5 w-5" />
           </button>
@@ -37,7 +37,7 @@ export function EmailAccessModal({ user, isOpen, onClose }: EmailAccessModalProp
 
         <div className="max-h-[75vh] overflow-y-auto p-6 text-sm leading-7 text-gray-800 space-y-4">
           <p>Hallo {latestUser.full_name},</p>
-          <p>anbei die wichtigsten Zugaenge fuer die Kommunikation.</p>
+          <p>anbei die wichtigsten Zugänge für die Kommunikation.</p>
 
           <div>
             <p className="font-semibold text-gray-900">Informationen zur Einrichtung des E-Mail-Programms</p>

@@ -25,7 +25,7 @@ export function MattermostInfoModal({
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
-            aria-label="Popup schliessen"
+            aria-label="Popup schließen"
           >
             <X className="h-5 w-5" />
           </button>
@@ -44,8 +44,8 @@ export function MattermostInfoModal({
           <div className="space-y-5 text-sm leading-6 text-gray-800">
             <p>Liebe Kolleginnen und Kollegen,</p>
             <p>
-              im Rahmen unserer internen Kommunikation und Projektorganisation setzen wir kuenftig Mattermost
-              als zentrale Plattform ein. Damit ihr euch erfolgreich registrieren koennt, folgt bitte dieser
+              im Rahmen unserer internen Kommunikation und Projektorganisation setzen wir künftig Mattermost
+              als zentrale Plattform ein. Damit ihr euch erfolgreich registrieren könnt, folgt bitte dieser
               kurzen Anleitung.
             </p>
             <div>
@@ -62,7 +62,7 @@ export function MattermostInfoModal({
             <div>
               <p className="mb-2 font-semibold text-gray-900">So meldet ihr euch bei Mattermost an</p>
               <p className="font-medium text-gray-900">1. Aufruf der Plattform</p>
-              <p>Oeffnet folgenden Link in eurem Browser:</p>
+              <p>Öffnet folgenden Link in eurem Browser:</p>
               <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">
                 {url}
               </a>
@@ -71,14 +71,14 @@ export function MattermostInfoModal({
               <p className="font-medium text-gray-900">2. Account erstellen</p>
               <p>Klickt auf "Registrieren" oder "Create Account".</p>
               <p>
-                Gebt euren vollstaendigen Namen, eine gueltige E-Mail-Adresse und ein sicheres Passwort ein.
-                Bestaetigt eure Registrierung gegebenenfalls per E-Mail.
+                Gebt euren vollständigen Namen, eine gültige E-Mail-Adresse und ein sicheres Passwort ein.
+                Bestätigt eure Registrierung gegebenenfalls per E-Mail.
               </p>
             </div>
             <div>
               <p className="font-medium text-gray-900">3. Anmeldung</p>
               <p>
-                Nach erfolgreicher Registrierung koennt ihr euch jederzeit ueber denselben Link mit euren
+                Nach erfolgreicher Registrierung könnt ihr euch jederzeit über denselben Link mit euren
                 Zugangsdaten anmelden.
               </p>
             </div>
@@ -87,10 +87,10 @@ export function MattermostInfoModal({
               <p>
                 Die Zuweisung zu den entsprechenden Teams (Abteilungen, Projekte etc.) erfolgt manuell durch
                 einen Administrator. Sobald ihr euch registriert habt, werdet ihr zeitnah freigeschaltet und den
-                passenden Teams hinzugefuegt.
+                passenden Teams hinzugefügt.
               </p>
-              <p>Ihr muesst also nichts weiter tun, ausser euren Account zu erstellen, wir kuemmern uns um den Rest.</p>
-              <p>Bei Fragen oder Problemen koennt ihr euch gerne an mich oder unser Support-Team wenden.</p>
+              <p>Ihr müsst also nichts weiter tun, außer euren Account zu erstellen, wir kümmern uns um den Rest.</p>
+              <p>Bei Fragen oder Problemen könnt ihr euch gerne an mich oder unser Support-Team wenden.</p>
             </div>
           </div>
         </div>
