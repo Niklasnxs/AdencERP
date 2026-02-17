@@ -497,24 +497,24 @@ export function Calendar() {
       )}
 
       {isAdmin && (
-        <div className="mb-6 flex flex-wrap gap-3">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <button
             onClick={() => setShowVacationModal(true)}
-            className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full bg-[#1e3a8a] text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
-            Urlaub eintragen (Zeitraum)
+            Urlaub (Zeitraum)
           </button>
           <button
             onClick={() => setShowHomeofficeModal(true)}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
+            className="w-full bg-purple-500 text-white px-4 py-2.5 rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium"
           >
-            Homeoffice eintragen (Zeitraum)
+            Homeoffice (Zeitraum)
           </button>
           <button
             onClick={() => setShowSchoolModal(true)}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            className="w-full bg-orange-500 text-white px-4 py-2.5 rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
           >
-            Schultage eintragen (Zeitraum)
+            Schule (Zeitraum)
           </button>
         </div>
       )}
@@ -602,16 +602,16 @@ export function Calendar() {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-3">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <button
           onClick={() => {
             setConfirmMonthValue(format(currentDate, 'yyyy-MM'));
             setShowConfirmMonthModal(true);
           }}
           disabled={isConfirmingMonth}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium"
         >
-          {isConfirmingMonth ? 'Wird bestaetigt...' : 'Anwesenheit fuer diesen Monat bestaetigen'}
+          {isConfirmingMonth ? 'Bestaetige...' : 'Monat bestaetigen'}
         </button>
       </div>
 
