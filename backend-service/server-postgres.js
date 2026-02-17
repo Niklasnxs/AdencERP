@@ -76,11 +76,35 @@ app.post('/api/auth/login', async (req, res) => {
 
 // ===== USERS =====
 
+const USER_SELECT_WITH_EMAIL_LOGIN = `
+  SELECT id, email, full_name, role, address, birthday, employment_type,
+         email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at
+  FROM users
+`;
+
+const USER_SELECT_LEGACY = `
+  SELECT id, email, full_name, role, address, birthday, employment_type,
+         email_access, mattermost_url, zoom_link, stundenliste_link, created_at
+  FROM users
+`;
+
+async function queryUsersWithSchemaFallback(queryWithNewColumns, queryLegacyColumns, params = []) {
+  try {
+    return await db.query(queryWithNewColumns, params);
+  } catch (error) {
+    if (error?.code === '42703') {
+      return db.query(queryLegacyColumns, params);
+    }
+    throw error;
+  }
+}
+
 // Get all users
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at FROM users ORDER BY id'
+    const result = await queryUsersWithSchemaFallback(
+      `${USER_SELECT_WITH_EMAIL_LOGIN} ORDER BY id`,
+      `${USER_SELECT_LEGACY} ORDER BY id`
     );
     res.json(result.rows);
   } catch (error) {
@@ -92,8 +116,9 @@ app.get('/api/users', authenticateToken, async (req, res) => {
 // Get user by ID
 app.get('/api/users/:id', authenticateToken, async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT id, email, full_name, role, address, birthday, employment_type, email_access, email_login, email_password, mattermost_url, zoom_link, stundenliste_link, created_at FROM users WHERE id = $1',
+    const result = await queryUsersWithSchemaFallback(
+      `${USER_SELECT_WITH_EMAIL_LOGIN} WHERE id = $1`,
+      `${USER_SELECT_LEGACY} WHERE id = $1`,
       [req.params.id]
     );
     
