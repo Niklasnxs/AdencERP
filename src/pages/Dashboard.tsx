@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
-import { Clock, AlertCircle, FolderKanban, X, Mail, Video } from 'lucide-react';
+import { Clock, X, Mail, Video, AlertCircle, FolderKanban } from 'lucide-react';
 import { eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { fillYearAsPresentForUser } from '../utils/fillAttendanceYear';
 import { APP_NAME, GENERAL_ZOOM_URL, MARVIN_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
+import { MattermostInfoModal } from '../components/MattermostInfoModal';
+import { EmailAccessModal } from '../components/EmailAccessModal';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();
@@ -18,13 +20,14 @@ export function Dashboard() {
   const [schoolEndDate, setSchoolEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [schoolReason, setSchoolReason] = useState('');
   const [isFillingYear, setIsFillingYear] = useState(false);
+  const [mattermostGuide, setMattermostGuide] = useState<'adence' | 'nxs' | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   if (!user) return null;
   const currentYear = new Date().getFullYear();
   const allUsers = store.getUsers();
   const allProjects = store.getProjects();
   const allTasks = store.getTasks();
-
   const handleCreateVacation = async (e: React.FormEvent) => {
     e.preventDefault();
     const start = new Date(vacationStartDate);
@@ -165,11 +168,7 @@ export function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => {
-                if (user.email_access) {
-                  alert(`Email Zugang:\n\n${user.email_access}`);
-                } else {
-                  alert('Keine Email-Zugangsdaten hinterlegt.');
-                }
+                setShowEmailModal(true);
               }}
               className="flex items-center gap-4 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
             >
@@ -214,7 +213,7 @@ export function Dashboard() {
 
             <button
               onClick={() => {
-                window.open(MATTERMOST_ADENCE.url, '_blank');
+                setMattermostGuide('adence');
               }}
               className="flex items-center gap-4 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
             >
@@ -229,7 +228,7 @@ export function Dashboard() {
 
             <button
               onClick={() => {
-                window.open(MATTERMOST_NXS.url, '_blank');
+                setMattermostGuide('nxs');
               }}
               className="flex items-center gap-4 p-4 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors border border-violet-200"
             >
@@ -469,6 +468,26 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      <MattermostInfoModal
+        isOpen={mattermostGuide === 'adence'}
+        onClose={() => setMattermostGuide(null)}
+        title="ADence Mattermost Kanal"
+        linkLabel="Zum Mattermost Kanal von ADence"
+        url={MATTERMOST_ADENCE.url}
+      />
+      <MattermostInfoModal
+        isOpen={mattermostGuide === 'nxs'}
+        onClose={() => setMattermostGuide(null)}
+        title="Next Strategy AI Mattermost Kanal"
+        linkLabel="Zum Mattermost Kanal von Next Strategy AI"
+        url={MATTERMOST_NXS.url}
+      />
+      <EmailAccessModal
+        user={user}
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+      />
     </div>
   );
 }

@@ -66,3 +66,23 @@ export function getHamburgWorkdaysForYear(year: number): string[] {
 
   return result;
 }
+
+export function getHamburgWorkdaysForMonth(year: number, monthIndex: number): string[] {
+  const holidays = getHamburgHolidaySet(year);
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 0);
+  const result: string[] = [];
+
+  for (let day = new Date(start); day <= end; day = addDays(day, 1)) {
+    if (isWeekend(day)) {
+      continue;
+    }
+    const dateStr = format(day, 'yyyy-MM-dd');
+    if (holidays.has(dateStr)) {
+      continue;
+    }
+    result.push(dateStr);
+  }
+
+  return result;
+}

@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS users (
     birthday DATE,
     employment_type VARCHAR(50) CHECK (employment_type IN ('full_time', 'part_time', 'internship', 'minijob')),
     email_access TEXT,
+    email_login TEXT,
+    email_password TEXT,
     mattermost_url TEXT,
     zoom_link TEXT,
     stundenliste_link TEXT,
@@ -19,6 +21,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS email_access TEXT,
+ADD COLUMN IF NOT EXISTS email_login TEXT,
+ADD COLUMN IF NOT EXISTS email_password TEXT,
 ADD COLUMN IF NOT EXISTS mattermost_url TEXT,
 ADD COLUMN IF NOT EXISTS zoom_link TEXT,
 ADD COLUMN IF NOT EXISTS stundenliste_link TEXT;

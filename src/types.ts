@@ -12,6 +12,8 @@ export interface User {
   birthday?: string; // YYYY-MM-DD format
   employment_type?: EmploymentType;
   email_access?: string; // Email access information
+  email_login?: string; // Login email for mail client
+  email_password?: string; // Login password for mail client
   mattermost_url?: string; // Mattermost login URL
   zoom_link?: string; // Zoom meeting link
   stundenliste_link?: string; // Stundenliste link

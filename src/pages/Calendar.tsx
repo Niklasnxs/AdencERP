@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 import { store } from '../store';
 import { usersAPI, projectsAPI, timeLogsAPI, absencesAPI, customersAPI } from '../services/api';
-import { Calendar as CalendarIcon, X, Edit } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Edit, Check } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isWeekend, isFuture, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { AbsenceType, AttendanceStatus, Absence, Project, TimeLog, User, Customer } from '../types';
+import { fillMonthAsPresentForUser } from '../utils/fillAttendanceMonth';
 
 export function Calendar() {
   const { user, isAdmin } = useAuth();
@@ -49,6 +50,7 @@ export function Calendar() {
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [isConfirmingMonth, setIsConfirmingMonth] = useState(false);
   const [targetStatus, setTargetStatus] = useState<'Anwesenheit' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
   const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krank');
   const [targetReason, setTargetReason] = useState<string>('');
@@ -225,6 +227,26 @@ export function Calendar() {
 
   const monthStartStr = useMemo(() => format(monthStart, 'yyyy-MM-dd'), [monthStart]);
   const monthEndStr = useMemo(() => format(monthEnd, 'yyyy-MM-dd'), [monthEnd]);
+
+  const handleConfirmCurrentMonthAttendance = async () => {
+    const monthLabel = format(currentDate, 'MMMM yyyy', { locale: de });
+    const confirmed = window.confirm(
+      `Soll der aktuelle Monat (${monthLabel}) als bestaetigt anwesend eingetragen werden?`
+    );
+    if (!confirmed) return;
+
+    setIsConfirmingMonth(true);
+    try {
+      const result = await fillMonthAsPresentForUser(user.id, currentDate);
+      await store.initialize();
+      setRefreshKey((prev) => prev + 1);
+      alert(
+        `Monat bestaetigt. Neu gesetzt: ${result.created}, uebersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
+      );
+    } finally {
+      setIsConfirmingMonth(false);
+    }
+  };
 
   useEffect(() => {
     const normalizeDate = (value: string) => {
@@ -440,6 +462,16 @@ export function Calendar() {
           </button>
         </div>
       )}
+
+      <div className="mb-6 flex flex-wrap gap-3">
+        <button
+          onClick={handleConfirmCurrentMonthAttendance}
+          disabled={isConfirmingMonth}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isConfirmingMonth ? 'Wird bestaetigt...' : 'Aktuellen Monat als anwesend bestaetigen'}
+        </button>
+      </div>
 
       {isAdmin && showVacationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -807,8 +839,11 @@ export function Calendar() {
                           }`}
                           title={titleText}
                         >
-                          {status === 'Unentschuldigt' && (
+                          {dayAbsence?.type === 'Unentschuldigt' && (
                             <span className="text-white text-[10px] font-bold leading-none">✕</span>
+                          )}
+                          {!dayAbsence && hasTimeLog && (
+                            <Check className="h-4 w-4 text-white mx-auto mt-1" />
                           )}
                         </div>
                       </td>
