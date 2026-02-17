@@ -88,12 +88,35 @@ const USER_SELECT_LEGACY = `
   FROM users
 `;
 
+function buildLegacyEmailAccess(emailAccess, emailLogin, emailPassword) {
+  if (emailAccess) return emailAccess;
+  if (!emailLogin && !emailPassword) return null;
+  return `LOGIN_EMAIL:${emailLogin || ''}\nLOGIN_PASSWORD:${emailPassword || ''}`;
+}
+
+function hydrateLegacyEmailFields(row) {
+  if (!row) return row;
+  if (row.email_login || row.email_password) return row;
+  const raw = row.email_access || '';
+  const loginMatch = raw.match(/LOGIN_EMAIL:(.*)/);
+  const passwordMatch = raw.match(/LOGIN_PASSWORD:(.*)/);
+  return {
+    ...row,
+    email_login: loginMatch ? loginMatch[1].trim() : null,
+    email_password: passwordMatch ? passwordMatch[1].trim() : null,
+  };
+}
+
 async function queryUsersWithSchemaFallback(queryWithNewColumns, queryLegacyColumns, params = []) {
   try {
-    return await db.query(queryWithNewColumns, params);
+    const result = await db.query(queryWithNewColumns, params);
+    result.rows = result.rows.map(hydrateLegacyEmailFields);
+    return result;
   } catch (error) {
     if (error?.code === '42703') {
-      return db.query(queryLegacyColumns, params);
+      const result = await db.query(queryLegacyColumns, params);
+      result.rows = result.rows.map(hydrateLegacyEmailFields);
+      return result;
     }
     throw error;
   }
@@ -153,11 +176,23 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       if (error?.code !== '42703') throw error;
       result = await db.query(
         'INSERT INTO users (email, password, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, email, full_name, role, address, birthday, employment_type, email_access, mattermost_url, zoom_link, stundenliste_link, created_at',
-        [email, hashedPassword, full_name, role, address || null, birthday || null, employment_type || null, email_access || null, mattermost_url || null, zoom_link || null, stundenliste_link || null]
+        [
+          email,
+          hashedPassword,
+          full_name,
+          role,
+          address || null,
+          birthday || null,
+          employment_type || null,
+          buildLegacyEmailAccess(email_access, email_login, email_password),
+          mattermost_url || null,
+          zoom_link || null,
+          stundenliste_link || null,
+        ]
       );
     }
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(hydrateLegacyEmailFields(result.rows[0]));
   } catch (error) {
     console.error('Create user error:', error);
     if (error.code === '23505') {
@@ -279,7 +314,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       }
       if (email_access !== undefined) {
         legacyUpdates.push(`email_access = $${legacyParam++}`);
-        legacyValues.push(email_access || null);
+        legacyValues.push(buildLegacyEmailAccess(email_access, email_login, email_password));
       }
       if (mattermost_url !== undefined) {
         legacyUpdates.push(`mattermost_url = $${legacyParam++}`);
@@ -305,7 +340,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json(hydrateLegacyEmailFields(result.rows[0]));
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });
