@@ -23,6 +23,7 @@ export function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
+  const [showConfirmMonthModal, setShowConfirmMonthModal] = useState(false);
   const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
   const [showEmployeeDayModal, setShowEmployeeDayModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState<{ date: string; userId: string } | null>(null);
@@ -51,6 +52,7 @@ export function Calendar() {
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [isConfirmingMonth, setIsConfirmingMonth] = useState(false);
+  const [confirmMonthValue, setConfirmMonthValue] = useState(format(new Date(), 'yyyy-MM'));
   const [targetStatus, setTargetStatus] = useState<'Anwesenheit' | 'Entschuldigt' | 'Unentschuldigt'>('Entschuldigt');
   const [targetAbsenceType, setTargetAbsenceType] = useState<AbsenceType>('Krank');
   const [targetReason, setTargetReason] = useState<string>('');
@@ -229,20 +231,20 @@ export function Calendar() {
   const monthEndStr = useMemo(() => format(monthEnd, 'yyyy-MM-dd'), [monthEnd]);
 
   const handleConfirmCurrentMonthAttendance = async () => {
-    const monthLabel = format(currentDate, 'MMMM yyyy', { locale: de });
-    const confirmed = window.confirm(
-      `Soll der aktuelle Monat (${monthLabel}) als bestaetigt anwesend eingetragen werden?`
-    );
+    const selectedMonthDate = new Date(`${confirmMonthValue}-01`);
+    const monthLabel = format(selectedMonthDate, 'MMMM yyyy', { locale: de });
+    const confirmed = window.confirm(`Soll ${monthLabel} als bestaetigt anwesend fuer dich eingetragen werden?`);
     if (!confirmed) return;
 
     setIsConfirmingMonth(true);
     try {
-      const result = await fillMonthAsPresentForUser(user.id, currentDate);
+      const result = await fillMonthAsPresentForUser(user.id, selectedMonthDate);
       await store.initialize();
       setRefreshKey((prev) => prev + 1);
       alert(
-        `Monat bestaetigt. Neu gesetzt: ${result.created}, uebersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
+        `Monat fuer dich bestaetigt. Neu gesetzt: ${result.created}, uebersprungen: ${result.skipped}, entfernte Abwesenheiten: ${result.cleanedAbsences}.`
       );
+      setShowConfirmMonthModal(false);
     } finally {
       setIsConfirmingMonth(false);
     }
@@ -309,7 +311,7 @@ export function Calendar() {
       return absence.type === 'Unentschuldigt' ? 'Unentschuldigt' : 'Entschuldigt';
     }
 
-    return 'Anwesenheit';
+    return 'Sonstiges';
   };
 
   const users = isAdmin ? usersData : [user];
@@ -465,13 +467,61 @@ export function Calendar() {
 
       <div className="mb-6 flex flex-wrap gap-3">
         <button
-          onClick={handleConfirmCurrentMonthAttendance}
+          onClick={() => {
+            setConfirmMonthValue(format(currentDate, 'yyyy-MM'));
+            setShowConfirmMonthModal(true);
+          }}
           disabled={isConfirmingMonth}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {isConfirmingMonth ? 'Wird bestaetigt...' : 'Aktuellen Monat als anwesend bestaetigen'}
+          {isConfirmingMonth ? 'Wird bestaetigt...' : 'Anwesenheit fuer diesen Monat bestaetigen'}
         </button>
       </div>
+
+      {showConfirmMonthModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Monat bestaetigen</h2>
+              <button
+                onClick={() => setShowConfirmMonthModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Diese Aktion gilt nur fuer deinen Account und kann auch rueckwirkend ausgefuehrt werden.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Monat</label>
+                <input
+                  type="month"
+                  value={confirmMonthValue}
+                  onChange={(e) => setConfirmMonthValue(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleConfirmCurrentMonthAttendance}
+                  disabled={isConfirmingMonth}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isConfirmingMonth ? 'Speichert...' : 'Bestaetigen'}
+                </button>
+                <button
+                  onClick={() => setShowConfirmMonthModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdmin && showVacationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -793,8 +843,8 @@ export function Calendar() {
                       statusColor = 'bg-gray-500';
                       titleText = 'Sonstiges';
                     } else {
-                      statusColor = 'bg-green-500';
-                      titleText = 'Anwesenheit';
+                      statusColor = 'bg-gray-500';
+                      titleText = 'Sonstiges';
                     }
 
                     return (
@@ -843,7 +893,9 @@ export function Calendar() {
                             <span className="text-white text-[10px] font-bold leading-none">✕</span>
                           )}
                           {!dayAbsence && hasTimeLog && (
-                            <Check className="h-4 w-4 text-white mx-auto mt-1" />
+                            <span className="mx-auto mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white/95 shadow-sm">
+                              <Check className="h-3 w-3 text-green-700" strokeWidth={3} />
+                            </span>
                           )}
                         </div>
                       </td>

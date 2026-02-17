@@ -18,7 +18,6 @@ export function Users() {
     address: '',
     birthday: '',
     employment_type: '' as EmploymentType | '',
-    email_access: '',
     email_login: '',
     email_password: '',
     stundenliste_link: '',
@@ -49,7 +48,6 @@ export function Users() {
         address: formData.address || undefined,
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
-        email_access: formData.email_access || undefined,
         email_login: formData.email_login || undefined,
         email_password: formData.email_password || undefined,
         stundenliste_link: formData.stundenliste_link || undefined,
@@ -72,7 +70,6 @@ export function Users() {
         address: formData.address || undefined,
         birthday: formData.birthday || undefined,
         employment_type: formData.employment_type || undefined,
-        email_access: formData.email_access || undefined,
         email_login: formData.email_login || undefined,
         email_password: formData.email_password || undefined,
         stundenliste_link: formData.stundenliste_link || undefined,
@@ -87,7 +84,6 @@ export function Users() {
       address: '',
       birthday: '',
       employment_type: '',
-      email_access: '',
       email_login: '',
       email_password: '',
       stundenliste_link: '',
@@ -107,7 +103,6 @@ export function Users() {
       address: user.address || '',
       birthday: user.birthday || '',
       employment_type: user.employment_type || '',
-      email_access: user.email_access || '',
       email_login: user.email_login || '',
       email_password: user.email_password || '',
       stundenliste_link: user.stundenliste_link || '',
@@ -152,7 +147,6 @@ export function Users() {
               address: '',
               birthday: '',
               employment_type: '',
-              email_access: '',
               email_login: '',
               email_password: '',
               stundenliste_link: '',
@@ -285,22 +279,6 @@ export function Users() {
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Zugangsdaten & Links</h3>
                 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email-Zugang
-                    </label>
-                    <textarea
-                      value={formData.email_access}
-                      onChange={(e) => setFormData({ ...formData, email_access: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      placeholder="Server: mail.example.com&#10;Benutzername: user@example.com&#10;Passwort: ..."
-                      rows={3}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Email-Zugangsinformationen (wird Mitarbeiter im Dashboard angezeigt)
-                    </p>
-                  </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       E-Mail Login (Programm)
