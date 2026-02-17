@@ -19,13 +19,8 @@ class DataStore {
   private cachedTimeLogs: TimeLog[] = [];
   private cachedAbsences: Absence[] = [];
 
-  // User methods - synchronous with background refresh
+  // User methods - read from cache only
   getUsers(): User[] {
-    // Refresh in background
-    usersAPI.getAll().then(users => {
-      this.cachedUsers = users;
-    }).catch(console.error);
-    
     return this.cachedUsers.map(u => ({ ...u, password: undefined }));
   }
 
@@ -75,22 +70,13 @@ class DataStore {
     }
   }
 
-  // Project methods - synchronous with background refresh
+  // Project methods - read from cache only
   getProjects(): Project[] {
-    // Refresh in background
-    projectsAPI.getAll().then(projects => {
-      this.cachedProjects = projects;
-    }).catch(console.error);
-    
     return this.cachedProjects;
   }
 
-  // Customer methods - synchronous with background refresh
+  // Customer methods - read from cache only
   getCustomers(): Customer[] {
-    customersAPI.getAll().then(customers => {
-      this.cachedCustomers = customers;
-    }).catch(console.error);
-
     return this.cachedCustomers;
   }
 
@@ -157,13 +143,8 @@ class DataStore {
     }
   }
 
-  // Task methods - synchronous with background refresh
+  // Task methods - read from cache only
   getTasks(): Task[] {
-    // Refresh in background
-    tasksAPI.getAll().then(tasks => {
-      this.cachedTasks = tasks;
-    }).catch(console.error);
-    
     return this.cachedTasks;
   }
 
@@ -222,13 +203,8 @@ class DataStore {
     });
   }
 
-  // Time Log methods - synchronous with background refresh
+  // Time Log methods - read from cache only
   getTimeLogs(): TimeLog[] {
-    // Refresh in background
-    timeLogsAPI.getAll().then(timeLogs => {
-      this.cachedTimeLogs = timeLogs;
-    }).catch(console.error);
-    
     return this.cachedTimeLogs;
   }
 
@@ -282,13 +258,8 @@ class DataStore {
     }
   }
 
-  // Absence methods - synchronous with background refresh
+  // Absence methods - read from cache only
   getAbsences(): Absence[] {
-    // Refresh in background
-    absencesAPI.getAll().then(absences => {
-      this.cachedAbsences = absences;
-    }).catch(console.error);
-    
     return this.cachedAbsences;
   }
 
@@ -417,14 +388,20 @@ class DataStore {
   // Initialize cache on app start
   async initialize() {
     try {
-      await Promise.all([
-        this.getUsers(),
-        this.getProjects(),
-        this.getCustomers(),
-        this.getTasks(),
-        this.getTimeLogs(),
-        this.getAbsences(),
+      const [users, projects, customers, tasks, timeLogs, absences] = await Promise.all([
+        usersAPI.getAll(),
+        projectsAPI.getAll(),
+        customersAPI.getAll(),
+        tasksAPI.getAll(),
+        timeLogsAPI.getAll(),
+        absencesAPI.getAll(),
       ]);
+      this.cachedUsers = users;
+      this.cachedProjects = projects;
+      this.cachedCustomers = customers;
+      this.cachedTasks = tasks;
+      this.cachedTimeLogs = timeLogs;
+      this.cachedAbsences = absences;
       console.log('✅ Store initialized with API data');
     } catch (error) {
       console.error('❌ Error initializing store:', error);
@@ -433,6 +410,3 @@ class DataStore {
 }
 
 export const store = new DataStore();
-
-// Initialize store when module loads
-store.initialize();

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from './types';
 import { authAPI, setToken, removeToken } from './services/api';
+import { store } from './store';
 
 interface AuthContextType {
   user: User | null;
@@ -16,10 +17,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const bootstrapSession = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) return;
+      try {
+        await store.initialize();
+      } finally {
+        setUser(JSON.parse(storedUser));
+      }
+    };
+    bootstrapSession();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -29,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Store JWT token
       setToken(response.token);
+
+      // Load fresh cache once after successful authentication.
+      await store.initialize();
       
       // Store user in state and persistent storage
       setUser(authenticatedUser);
