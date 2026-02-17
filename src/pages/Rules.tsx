@@ -118,9 +118,9 @@ export function Rules() {
               <li>Datenschutz und Vertraulichkeit gelten für alle Meldungen und personenbezogenen Angaben.</li>
               <li>Verstöße gegen dieses Regelwerk können zu Abmahnungen oder Kündigungen führen.</li>
               <li>
-                Kontakt bei Fragen: Tatjana Wolf,{' '}
-                <a href="mailto:tatjana.wolf@adence.de" className="text-blue-700 underline">
-                  tatjana.wolf@adence.de
+                Kontakt bei Fragen:{' '}
+                <a href="mailto:personal@devven.de" className="text-blue-700 underline">
+                  personal@devven.de
                 </a>
               </li>
             </ul>
