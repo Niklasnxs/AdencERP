@@ -3,6 +3,10 @@ export const APP_LOGO_URL = 'https://adence.de/wp-content/uploads/2026/02/image-
 
 export const GENERAL_ZOOM_URL = 'https://us02web.zoom.us/j/3518809382?pwd=MDBNSlNZVW5lTG16VnlBMytXUnZaZz09';
 export const MARVIN_ZOOM_URL = 'https://us02web.zoom.us/j/8286847260?pwd=SGlubGdrU1A0VVBzanlHNEVFc3o0dz09';
+export const MARVIN_CALENDLY_URL = 'https://calendly.com/internes-team-adence-nxs/sprechstunde';
+export const DSGPT_URL = 'https://mein.dsgpt.de';
+export const ZOOM_BACKGROUNDS_ZIP_URL = '/downloads/zoom-hintergruende.zip';
+export const PERSONAL_QUESTIONNAIRE_URL = '/downloads/Pers-2026-ausfuellbar.pdf';
 
 export const MATTERMOST_ADENCE = {
   name: 'ADence Mattermost Kanal',

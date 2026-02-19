@@ -8,6 +8,7 @@ import { APP_NAME } from '../config/branding';
 import { GENERAL_ZOOM_URL, MARVIN_ZOOM_URL, MATTERMOST_ADENCE, MATTERMOST_NXS } from '../config/branding';
 import { MattermostInfoModal } from '../components/MattermostInfoModal';
 import { EmailAccessModal } from '../components/EmailAccessModal';
+import { ResourceLinksBox } from '../components/ResourceLinksBox';
 
 export function AdminDashboard() {
   const { user, isAdmin } = useAuth();
@@ -154,6 +155,8 @@ export function AdminDashboard() {
           Jahr {currentYear} komplett anwesend
         </button>
       </div>
+
+      <ResourceLinksBox />
 
       <div className="bg-white rounded-lg shadow mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
