@@ -83,6 +83,10 @@ function isMissingFeatureTableError(error) {
   return error?.code === '42P01';
 }
 
+function isMissingFeatureSchemaError(error) {
+  return error?.code === '42P01' || error?.code === '42703';
+}
+
 const ONBOARDING_CHECKLIST_DEFAULT_ITEMS = [
   { key: 'mail_setup', label: 'Mail-Adresse eingerichtet' },
   { key: 'chat_setup', label: 'Chatprogramm (Handy & Desktop) eingerichtet' },
@@ -990,32 +994,55 @@ app.post('/api/document-uploads', authenticateToken, (req, res) => {
 
 app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async (_req, res) => {
   try {
-    const result = await db.query(
-      `SELECT
-         u.id AS user_id,
-         u.full_name,
-         u.email,
-         COUNT(du.id)::int AS upload_count,
-         MAX(du.created_at) AS latest_upload_at,
-         COUNT(du.id) FILTER (WHERE du.id IS NOT NULL AND dv.id IS NULL)::int AS unseen_count
-       FROM users u
-       LEFT JOIN document_uploads du ON du.user_id = u.id
-       LEFT JOIN document_upload_views dv
-         ON dv.upload_id = du.id
-        AND dv.admin_user_id = $1
-       GROUP BY u.id, u.full_name, u.email
-       ORDER BY unseen_count DESC, latest_upload_at DESC NULLS LAST, u.full_name ASC`,
-      [req.user.id]
-    );
-    res.json(
-      result.rows.map((row) => ({
-        ...row,
-        has_unseen: Number(row.unseen_count || 0) > 0,
-      }))
-    );
+    try {
+      const result = await db.query(
+        `SELECT
+           u.id AS user_id,
+           u.full_name,
+           u.email,
+           COUNT(du.id)::int AS upload_count,
+           MAX(du.created_at) AS latest_upload_at,
+           COUNT(du.id) FILTER (WHERE du.id IS NOT NULL AND dv.id IS NULL)::int AS unseen_count
+         FROM users u
+         LEFT JOIN document_uploads du ON du.user_id = u.id
+         LEFT JOIN document_upload_views dv
+           ON dv.upload_id = du.id
+          AND dv.admin_user_id = $1
+         GROUP BY u.id, u.full_name, u.email
+         ORDER BY unseen_count DESC, latest_upload_at DESC NULLS LAST, u.full_name ASC`,
+        [req.user.id]
+      );
+      return res.json(
+        result.rows.map((row) => ({
+          ...row,
+          has_unseen: Number(row.unseen_count || 0) > 0,
+        }))
+      );
+    } catch (innerError) {
+      if (!isMissingFeatureSchemaError(innerError)) throw innerError;
+      const fallback = await db.query(
+        `SELECT
+           u.id AS user_id,
+           u.full_name,
+           u.email,
+           COUNT(du.id)::int AS upload_count,
+           MAX(du.created_at) AS latest_upload_at,
+           0::int AS unseen_count
+         FROM users u
+         LEFT JOIN document_uploads du ON du.user_id = u.id
+         GROUP BY u.id, u.full_name, u.email
+         ORDER BY latest_upload_at DESC NULLS LAST, u.full_name ASC`
+      );
+      return res.json(
+        fallback.rows.map((row) => ({
+          ...row,
+          has_unseen: false,
+        }))
+      );
+    }
   } catch (error) {
     console.error('Get document upload overview error:', error);
-    if (isMissingFeatureTableError(error)) {
+    if (isMissingFeatureSchemaError(error)) {
       return res.json([]);
     }
     res.status(500).json({ error: 'Failed to fetch upload overview' });
@@ -1032,14 +1059,20 @@ app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, a
       [req.params.userId]
     );
 
-    await db.query(
-      `INSERT INTO document_upload_views (upload_id, admin_user_id)
-       SELECT du.id, $1
-       FROM document_uploads du
-       WHERE du.user_id = $2
-       ON CONFLICT (upload_id, admin_user_id) DO NOTHING`,
-      [req.user.id, req.params.userId]
-    );
+    try {
+      await db.query(
+        `INSERT INTO document_upload_views (upload_id, admin_user_id)
+         SELECT du.id, $1
+         FROM document_uploads du
+         WHERE du.user_id = $2
+         ON CONFLICT (upload_id, admin_user_id) DO NOTHING`,
+        [req.user.id, req.params.userId]
+      );
+    } catch (markSeenError) {
+      if (!isMissingFeatureSchemaError(markSeenError)) {
+        throw markSeenError;
+      }
+    }
 
     res.json(result.rows);
   } catch (error) {
@@ -1053,19 +1086,24 @@ app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, a
 
 app.get('/api/document-uploads/unseen-count', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT COUNT(du.id)::int AS unseen_count
-       FROM document_uploads du
-       LEFT JOIN document_upload_views dv
-         ON dv.upload_id = du.id
-        AND dv.admin_user_id = $1
-       WHERE dv.id IS NULL`,
-      [req.user.id]
-    );
-    res.json({ unseen_count: Number(result.rows[0]?.unseen_count || 0) });
+    try {
+      const result = await db.query(
+        `SELECT COUNT(du.id)::int AS unseen_count
+         FROM document_uploads du
+         LEFT JOIN document_upload_views dv
+           ON dv.upload_id = du.id
+          AND dv.admin_user_id = $1
+         WHERE dv.id IS NULL`,
+        [req.user.id]
+      );
+      return res.json({ unseen_count: Number(result.rows[0]?.unseen_count || 0) });
+    } catch (innerError) {
+      if (!isMissingFeatureSchemaError(innerError)) throw innerError;
+      return res.json({ unseen_count: 0 });
+    }
   } catch (error) {
     console.error('Get unseen upload count error:', error);
-    if (isMissingFeatureTableError(error)) {
+    if (isMissingFeatureSchemaError(error)) {
       return res.json({ unseen_count: 0 });
     }
     res.status(500).json({ error: 'Failed to fetch unseen upload count' });
