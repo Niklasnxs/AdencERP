@@ -992,7 +992,7 @@ app.post('/api/document-uploads', authenticateToken, (req, res) => {
   })();
 });
 
-app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async (_req, res) => {
+app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async (req, res) => {
   try {
     try {
       const result = await db.query(
