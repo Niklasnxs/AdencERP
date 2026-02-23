@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:5174'];
@@ -46,6 +46,58 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+const ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.docx'];
+
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
+
+function sanitizeFilename(filename = '') {
+  return filename.replace(/[^\w.\-() ]/g, '_');
+}
+
+function hasAllowedExtension(filename = '', allowedExtensions = []) {
+  const lower = filename.toLowerCase();
+  return allowedExtensions.some((ext) => lower.endsWith(ext));
+}
+
+const ONBOARDING_CHECKLIST_DEFAULT_ITEMS = [
+  { key: 'mail_setup', label: 'Mail-Adresse eingerichtet' },
+  { key: 'chat_setup', label: 'Chatprogramm (Handy & Desktop) eingerichtet' },
+  { key: 'rules_read', label: 'Regeln gelesen und verstanden' },
+  { key: 'timesheet_access', label: 'Zugang zur Stundenliste eingerichtet' },
+  { key: 'personal_questionnaire', label: 'Personalfragebogen (falls nötig) eingereicht' },
+  { key: 'documents_signed', label: 'Unternehmensdokumente unterschrieben' },
+];
+
+async function ensureChecklistRowsForUser(userId) {
+  for (const item of ONBOARDING_CHECKLIST_DEFAULT_ITEMS) {
+    await db.query(
+      `INSERT INTO onboarding_checklist (user_id, item_key, item_label, completed)
+       VALUES ($1, $2, $3, false)
+       ON CONFLICT (user_id, item_key) DO NOTHING`,
+      [userId, item.key, item.label]
+    );
+  }
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -874,6 +926,393 @@ app.delete('/api/absences/user/:user_id/date/:date', authenticateToken, async (r
   } catch (error) {
     console.error('Delete absences error:', error);
     res.status(500).json({ error: 'Failed to delete absences' });
+  }
+});
+
+// ===== DOCUMENT UPLOADS =====
+
+app.post('/api/document-uploads', authenticateToken, (req, res) => {
+  (async () => {
+    try {
+      const category = (req.body?.category || '').trim();
+      const file = req.body?.file;
+
+      if (!file) {
+        return res.status(400).json({ error: 'File is required' });
+      }
+      if (!category) {
+        return res.status(400).json({ error: 'Category is required' });
+      }
+
+      const originalName = sanitizeFilename(file?.name || '');
+      const mimeType = file?.type || '';
+      const size = Number(file?.size || 0);
+      const dataBase64 = file?.dataBase64 || '';
+
+      if (!originalName || !mimeType || !size || !dataBase64) {
+        return res.status(400).json({ error: 'Invalid file payload' });
+      }
+
+      if (!ALLOWED_DOCUMENT_MIME_TYPES.has(mimeType) || !hasAllowedExtension(originalName, ALLOWED_DOCUMENT_EXTENSIONS)) {
+        return res.status(400).json({ error: 'Only PDF and DOCX files are allowed' });
+      }
+      if (size > MAX_UPLOAD_BYTES) {
+        return res.status(400).json({ error: 'Maximum file size is 10 MB' });
+      }
+
+      const buffer = Buffer.from(dataBase64, 'base64');
+      if (buffer.length > MAX_UPLOAD_BYTES) {
+        return res.status(400).json({ error: 'Maximum file size is 10 MB' });
+      }
+
+      const result = await db.query(
+        `INSERT INTO document_uploads
+          (user_id, category, original_filename, mime_type, file_size, file_data)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, user_id, category, original_filename, mime_type, file_size, created_at`,
+        [req.user.id, category, originalName, mimeType, size, buffer]
+      );
+
+      return res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error('Create document upload error:', error);
+      return res.status(500).json({ error: 'Failed to upload document' });
+    }
+  })();
+});
+
+app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async (_req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT
+         u.id AS user_id,
+         u.full_name,
+         u.email,
+         COUNT(du.id)::int AS upload_count,
+         MAX(du.created_at) AS latest_upload_at
+       FROM users u
+       LEFT JOIN document_uploads du ON du.user_id = u.id
+       GROUP BY u.id, u.full_name, u.email
+       ORDER BY u.full_name ASC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get document upload overview error:', error);
+    res.status(500).json({ error: 'Failed to fetch upload overview' });
+  }
+});
+
+app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, user_id, category, original_filename, mime_type, file_size, created_at
+       FROM document_uploads
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [req.params.userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get user document uploads error:', error);
+    res.status(500).json({ error: 'Failed to fetch user uploads' });
+  }
+});
+
+app.get('/api/document-uploads/:id/download', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, original_filename, mime_type, file_data
+       FROM document_uploads
+       WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Upload not found' });
+    }
+
+    const file = result.rows[0];
+    res.setHeader('Content-Type', file.mime_type);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(file.original_filename)}"`);
+    res.send(file.file_data);
+  } catch (error) {
+    console.error('Download document upload error:', error);
+    res.status(500).json({ error: 'Failed to download upload' });
+  }
+});
+
+// ===== SUGGESTION BOX =====
+
+app.post('/api/briefkasten', authenticateToken, (req, res) => {
+  (async () => {
+    try {
+      const message = (req.body?.message || '').trim();
+      const category = (req.body?.category || '').trim();
+      const isAnonymous = Boolean(req.body?.is_anonymous);
+      const image = req.body?.image || null;
+
+      if (!message && !category && !image) {
+        return res.status(400).json({ error: 'At least one field (text, category, image) is required' });
+      }
+
+      let imageFilename = null;
+      let imageMimeType = null;
+      let imageSize = null;
+      let imageBuffer = null;
+
+      if (image) {
+        imageFilename = sanitizeFilename(image?.name || '');
+        imageMimeType = image?.type || '';
+        imageSize = Number(image?.size || 0);
+        const dataBase64 = image?.dataBase64 || '';
+
+        if (!imageFilename || !imageMimeType || !imageSize || !dataBase64) {
+          return res.status(400).json({ error: 'Invalid image payload' });
+        }
+        if (!ALLOWED_IMAGE_MIME_TYPES.has(imageMimeType)) {
+          return res.status(400).json({ error: 'Only image files are allowed (PNG, JPG, WEBP, GIF)' });
+        }
+        if (imageSize > MAX_UPLOAD_BYTES) {
+          return res.status(400).json({ error: 'Maximum image size is 10 MB' });
+        }
+
+        imageBuffer = Buffer.from(dataBase64, 'base64');
+        if (imageBuffer.length > MAX_UPLOAD_BYTES) {
+          return res.status(400).json({ error: 'Maximum image size is 10 MB' });
+        }
+      }
+
+      const result = await db.query(
+        `INSERT INTO suggestion_box_entries
+          (user_id, is_anonymous, message, category, image_filename, image_mime_type, image_size, image_data, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Neu')
+         RETURNING id, user_id, is_anonymous, message, category, status, created_at, updated_at`,
+        [
+          req.user.id,
+          isAnonymous,
+          message || null,
+          category || null,
+          imageFilename,
+          imageMimeType,
+          imageSize,
+          imageBuffer,
+        ]
+      );
+
+      return res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error('Create suggestion error:', error);
+      return res.status(500).json({ error: 'Failed to create suggestion entry' });
+    }
+  })();
+});
+
+app.get('/api/briefkasten', authenticateToken, requireAdmin, async (_req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT
+         s.id,
+         s.user_id,
+         s.is_anonymous,
+         s.message,
+         s.category,
+         s.status,
+         s.created_at,
+         s.updated_at,
+         (s.image_data IS NOT NULL) AS has_image,
+         s.image_filename,
+         u.full_name,
+         u.email
+       FROM suggestion_box_entries s
+       LEFT JOIN users u ON u.id = s.user_id
+       ORDER BY s.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get suggestions error:', error);
+    res.status(500).json({ error: 'Failed to fetch suggestion entries' });
+  }
+});
+
+app.get('/api/briefkasten/:id/image', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT image_filename, image_mime_type, image_data
+       FROM suggestion_box_entries
+       WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    const row = result.rows[0];
+    if (!row.image_data) {
+      return res.status(404).json({ error: 'No image for this entry' });
+    }
+
+    res.setHeader('Content-Type', row.image_mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(row.image_filename || 'briefkasten-bild')}"`);
+    res.send(row.image_data);
+  } catch (error) {
+    console.error('Download suggestion image error:', error);
+    res.status(500).json({ error: 'Failed to download image' });
+  }
+});
+
+app.put('/api/briefkasten/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    const allowedStatuses = new Set(['Neu', 'In Bearbeitung', 'Erledigt']);
+    if (!allowedStatuses.has(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const result = await db.query(
+      `UPDATE suggestion_box_entries
+       SET status = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, status, updated_at`,
+      [status, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update suggestion status error:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// ===== ONBOARDING CHECKLIST =====
+
+app.get('/api/onboarding-checklist/me', authenticateToken, async (req, res) => {
+  try {
+    await ensureChecklistRowsForUser(req.user.id);
+    const result = await db.query(
+      `SELECT id, user_id, item_key, item_label, completed, completed_at, updated_at
+       FROM onboarding_checklist
+       WHERE user_id = $1
+       ORDER BY item_key ASC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get own onboarding checklist error:', error);
+    res.status(500).json({ error: 'Failed to fetch onboarding checklist' });
+  }
+});
+
+app.put('/api/onboarding-checklist/me/:itemKey', authenticateToken, async (req, res) => {
+  try {
+    const itemKey = req.params.itemKey;
+    const completed = Boolean(req.body?.completed);
+    const templateItem = ONBOARDING_CHECKLIST_DEFAULT_ITEMS.find((item) => item.key === itemKey);
+
+    if (!templateItem) {
+      return res.status(400).json({ error: 'Unknown checklist item' });
+    }
+
+    await ensureChecklistRowsForUser(req.user.id);
+    const result = await db.query(
+      `UPDATE onboarding_checklist
+       SET completed = $1,
+           completed_at = CASE WHEN $1 = true THEN CURRENT_TIMESTAMP ELSE NULL END,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $2 AND item_key = $3
+       RETURNING id, user_id, item_key, item_label, completed, completed_at, updated_at`,
+      [completed, req.user.id, itemKey]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Checklist item not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update own onboarding checklist error:', error);
+    res.status(500).json({ error: 'Failed to update checklist item' });
+  }
+});
+
+app.get('/api/onboarding-checklist/admin-overview', authenticateToken, requireAdmin, async (_req, res) => {
+  try {
+    await db.query(
+      `INSERT INTO onboarding_checklist (user_id, item_key, item_label, completed)
+       SELECT u.id, v.item_key, v.item_label, false
+       FROM users u
+       CROSS JOIN (
+         VALUES
+           ('mail_setup', 'Mail-Adresse eingerichtet'),
+           ('chat_setup', 'Chatprogramm (Handy & Desktop) eingerichtet'),
+           ('rules_read', 'Regeln gelesen und verstanden'),
+           ('timesheet_access', 'Zugang zur Stundenliste eingerichtet'),
+           ('personal_questionnaire', 'Personalfragebogen (falls nötig) eingereicht'),
+           ('documents_signed', 'Unternehmensdokumente unterschrieben')
+       ) AS v(item_key, item_label)
+       ON CONFLICT (user_id, item_key) DO NOTHING`
+    );
+
+    const result = await db.query(
+      `SELECT
+         u.id AS user_id,
+         u.full_name,
+         u.email,
+         COUNT(c.id)::int AS total_items,
+         COUNT(c.id) FILTER (WHERE c.completed = true)::int AS completed_items
+       FROM users u
+       LEFT JOIN onboarding_checklist c ON c.user_id = u.id
+       GROUP BY u.id, u.full_name, u.email
+       ORDER BY u.full_name ASC`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get onboarding admin overview error:', error);
+    res.status(500).json({ error: 'Failed to fetch onboarding overview' });
+  }
+});
+
+// ===== RULES ACCEPTANCE =====
+
+app.get('/api/rules/acceptance/me', authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT accepted_at
+       FROM rules_acceptances
+       WHERE user_id = $1`,
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ accepted: false, accepted_at: null });
+    }
+
+    return res.json({ accepted: true, accepted_at: result.rows[0].accepted_at });
+  } catch (error) {
+    console.error('Get rules acceptance error:', error);
+    res.status(500).json({ error: 'Failed to fetch rules acceptance' });
+  }
+});
+
+app.post('/api/rules/acceptance/me', authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query(
+      `INSERT INTO rules_acceptances (user_id)
+       VALUES ($1)
+       ON CONFLICT (user_id)
+       DO UPDATE SET accepted_at = rules_acceptances.accepted_at
+       RETURNING accepted_at`,
+      [req.user.id]
+    );
+
+    res.status(201).json({ accepted: true, accepted_at: result.rows[0].accepted_at });
+  } catch (error) {
+    console.error('Create rules acceptance error:', error);
+    res.status(500).json({ error: 'Failed to save rules acceptance' });
   }
 });
 

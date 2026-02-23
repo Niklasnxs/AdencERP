@@ -49,6 +49,36 @@ async function apiRequest<T>(
   return response.json();
 }
 
+async function apiRequestBlob(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Blob> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      removeToken();
+      localStorage.removeItem('user');
+    }
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  return response.blob();
+}
+
 // Auth API
 export const authAPI = {
   login: (email: string, password: string) =>
@@ -177,5 +207,64 @@ export const notificationsAPI = {
   markAsRead: (id: string) =>
     apiRequest<any>(`/notifications/${id}/read`, {
       method: 'PUT',
+    }),
+};
+
+export const documentUploadsAPI = {
+  create: (payload: {
+    category: string;
+    file: { name: string; type: string; size: number; dataBase64: string };
+  }) =>
+    apiRequest<any>('/document-uploads', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getOverview: () => apiRequest<any[]>('/document-uploads/overview'),
+  getByUser: (userId: string) => apiRequest<any[]>(`/document-uploads/user/${userId}`),
+  download: (id: string) =>
+    apiRequestBlob(`/document-uploads/${id}/download`, {
+      method: 'GET',
+    }),
+};
+
+export const briefkastenAPI = {
+  create: (payload: {
+    message?: string;
+    category?: string;
+    is_anonymous?: boolean;
+    image?: { name: string; type: string; size: number; dataBase64: string } | null;
+  }) =>
+    apiRequest<any>('/briefkasten', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getAll: () => apiRequest<any[]>('/briefkasten'),
+  updateStatus: (id: string, status: 'Neu' | 'In Bearbeitung' | 'Erledigt') =>
+    apiRequest<any>(`/briefkasten/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
+  downloadImage: (id: string) =>
+    apiRequestBlob(`/briefkasten/${id}/image`, {
+      method: 'GET',
+    }),
+};
+
+export const checklistAPI = {
+  getOwn: () => apiRequest<any[]>('/onboarding-checklist/me'),
+  updateOwn: (itemKey: string, completed: boolean) =>
+    apiRequest<any>(`/onboarding-checklist/me/${itemKey}`, {
+      method: 'PUT',
+      body: JSON.stringify({ completed }),
+    }),
+  getAdminOverview: () => apiRequest<any[]>('/onboarding-checklist/admin-overview'),
+};
+
+export const rulesAPI = {
+  getOwnAcceptance: () => apiRequest<any>('/rules/acceptance/me'),
+  acceptOwn: () =>
+    apiRequest<any>('/rules/acceptance/me', {
+      method: 'POST',
+      body: JSON.stringify({ accepted: true }),
     }),
 };

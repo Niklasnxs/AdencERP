@@ -10,6 +10,9 @@ import { Users } from './pages/Users';
 import { Customers } from './pages/Customers';
 import { Rules } from './pages/Rules';
 import { CockpitGuide } from './pages/CockpitGuide';
+import { Checklist } from './pages/Checklist';
+import { InternalMailbox } from './pages/InternalMailbox';
+import { AdminInfo } from './pages/AdminInfo';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -39,6 +42,9 @@ function AppRoutes() {
         <Route path="/kalender" element={<Calendar />} />
         <Route path="/anleitung-cockpit" element={<CockpitGuide />} />
         <Route path="/regelwerk" element={<Rules />} />
+        <Route path="/checkliste" element={<Checklist />} />
+        <Route path="/interner-briefkasten" element={<InternalMailbox />} />
+        <Route path="/admin-info" element={<AdminInfo />} />
         <Route path="/benutzer" element={<Users />} />
         <Route path="/kunden" element={<Customers />} />
       </Route>

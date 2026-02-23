@@ -115,6 +115,60 @@ CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_user ON tasks(assigned_to_user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 
+-- Dokument-Uploads (für Bildungsträger, Urlaub, Krankheit etc.)
+CREATE TABLE IF NOT EXISTS document_uploads (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category VARCHAR(100) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size INTEGER NOT NULL CHECK (file_size > 0),
+    file_data BYTEA NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_uploads_user ON document_uploads(user_id);
+
+-- Interner Briefkasten
+CREATE TABLE IF NOT EXISTS suggestion_box_entries (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    is_anonymous BOOLEAN NOT NULL DEFAULT false,
+    message TEXT,
+    category VARCHAR(100),
+    image_filename VARCHAR(255),
+    image_mime_type VARCHAR(100),
+    image_size INTEGER,
+    image_data BYTEA,
+    status VARCHAR(30) NOT NULL DEFAULT 'Neu' CHECK (status IN ('Neu', 'In Bearbeitung', 'Erledigt')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_suggestion_box_status ON suggestion_box_entries(status);
+CREATE INDEX IF NOT EXISTS idx_suggestion_box_user ON suggestion_box_entries(user_id);
+
+-- Onboarding-Checkliste pro Nutzer
+CREATE TABLE IF NOT EXISTS onboarding_checklist (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_key VARCHAR(100) NOT NULL,
+    item_label TEXT NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT false,
+    completed_at TIMESTAMP NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, item_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_onboarding_checklist_user ON onboarding_checklist(user_id);
+
+-- Einmalige Einwilligung Regelwerk
+CREATE TABLE IF NOT EXISTS rules_acceptances (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    accepted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert default admin user (password: Adence#123)
 INSERT INTO users (email, password, full_name, role) 
 VALUES ('niklas.schindhelm@adence.de', '$2b$10$cmhKIeDmeHMzfld563gqkOYXsJas8k8s.tVcV1aInyIYc3lu2j2US', 'Niklas Schindhelm', 'admin')

@@ -9,7 +9,10 @@ import {
   Clock,
   LogOut,
   Menu,
-  X
+  X,
+  Inbox,
+  ListChecks,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { cn } from '../utils';
@@ -49,6 +52,22 @@ export function Sidebar() {
       label: 'Regelwerk',
       path: '/regelwerk',
       icon: <BookOpen className="w-5 h-5" />,
+    },
+    {
+      label: 'Checkliste',
+      path: '/checkliste',
+      icon: <ListChecks className="w-5 h-5" />,
+    },
+    {
+      label: 'Interner Briefkasten',
+      path: '/interner-briefkasten',
+      icon: <Inbox className="w-5 h-5" />,
+    },
+    {
+      label: 'Admin-Info',
+      path: '/admin-info',
+      icon: <ShieldCheck className="w-5 h-5" />,
+      adminOnly: true,
     },
     {
       label: 'Anleitung Cockpit',

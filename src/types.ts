@@ -114,3 +114,69 @@ export interface Notification {
   read: boolean;
   created_at: string;
 }
+
+export type UploadCategory =
+  | 'Personalfragebogen'
+  | 'Urlaub'
+  | 'Krankheit'
+  | 'Bildungsträger'
+  | 'Sonstiges';
+
+export interface DocumentUploadMeta {
+  id: string;
+  user_id: string;
+  category: UploadCategory | string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface DocumentUploadOverview {
+  user_id: string;
+  full_name: string;
+  email: string;
+  upload_count: number;
+  latest_upload_at: string | null;
+}
+
+export type SuggestionCategory = 'Einkaufsliste' | 'Verbesserungsvorschlag' | 'Problem/Kummerkasten' | 'Sonstiges';
+export type SuggestionStatus = 'Neu' | 'In Bearbeitung' | 'Erledigt';
+
+export interface SuggestionEntry {
+  id: string;
+  user_id: string | null;
+  full_name?: string | null;
+  email?: string | null;
+  is_anonymous: boolean;
+  message: string | null;
+  category: SuggestionCategory | string | null;
+  status: SuggestionStatus;
+  has_image: boolean;
+  image_filename?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingChecklistItem {
+  id: string;
+  user_id: string;
+  item_key: string;
+  item_label: string;
+  completed: boolean;
+  completed_at: string | null;
+  updated_at: string;
+}
+
+export interface OnboardingOverviewRow {
+  user_id: string;
+  full_name: string;
+  email: string;
+  total_items: number;
+  completed_items: number;
+}
+
+export interface RulesAcceptance {
+  accepted: boolean;
+  accepted_at: string | null;
+}
