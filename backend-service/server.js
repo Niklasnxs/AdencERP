@@ -79,6 +79,10 @@ function hasAllowedExtension(filename = '', allowedExtensions = []) {
   return allowedExtensions.some((ext) => lower.endsWith(ext));
 }
 
+function isMissingFeatureTableError(error) {
+  return error?.code === '42P01';
+}
+
 const ONBOARDING_CHECKLIST_DEFAULT_ITEMS = [
   { key: 'mail_setup', label: 'Mail-Adresse eingerichtet' },
   { key: 'chat_setup', label: 'Chatprogramm (Handy & Desktop) eingerichtet' },
@@ -976,6 +980,9 @@ app.post('/api/document-uploads', authenticateToken, (req, res) => {
       return res.status(201).json(result.rows[0]);
     } catch (error) {
       console.error('Create document upload error:', error);
+      if (isMissingFeatureTableError(error)) {
+        return res.status(503).json({ error: 'Uploads are not initialized yet. Please run database migration.' });
+      }
       return res.status(500).json({ error: 'Failed to upload document' });
     }
   })();
@@ -998,6 +1005,9 @@ app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async
     res.json(result.rows);
   } catch (error) {
     console.error('Get document upload overview error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch upload overview' });
   }
 });
@@ -1014,6 +1024,9 @@ app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, a
     res.json(result.rows);
   } catch (error) {
     console.error('Get user document uploads error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch user uploads' });
   }
 });
@@ -1037,6 +1050,9 @@ app.get('/api/document-uploads/:id/download', authenticateToken, requireAdmin, a
     res.send(file.file_data);
   } catch (error) {
     console.error('Download document upload error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.status(503).json({ error: 'Uploads are not initialized yet. Please run database migration.' });
+    }
     res.status(500).json({ error: 'Failed to download upload' });
   }
 });
@@ -1102,6 +1118,9 @@ app.post('/api/briefkasten', authenticateToken, (req, res) => {
       return res.status(201).json(result.rows[0]);
     } catch (error) {
       console.error('Create suggestion error:', error);
+      if (isMissingFeatureTableError(error)) {
+        return res.status(503).json({ error: 'Mailbox is not initialized yet. Please run database migration.' });
+      }
       return res.status(500).json({ error: 'Failed to create suggestion entry' });
     }
   })();
@@ -1130,6 +1149,9 @@ app.get('/api/briefkasten', authenticateToken, requireAdmin, async (_req, res) =
     res.json(result.rows);
   } catch (error) {
     console.error('Get suggestions error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch suggestion entries' });
   }
 });
@@ -1157,6 +1179,9 @@ app.get('/api/briefkasten/:id/image', authenticateToken, requireAdmin, async (re
     res.send(row.image_data);
   } catch (error) {
     console.error('Download suggestion image error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.status(503).json({ error: 'Mailbox is not initialized yet. Please run database migration.' });
+    }
     res.status(500).json({ error: 'Failed to download image' });
   }
 });
@@ -1184,6 +1209,9 @@ app.put('/api/briefkasten/:id/status', authenticateToken, requireAdmin, async (r
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Update suggestion status error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.status(503).json({ error: 'Mailbox is not initialized yet. Please run database migration.' });
+    }
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
@@ -1203,6 +1231,9 @@ app.get('/api/onboarding-checklist/me', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Get own onboarding checklist error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch onboarding checklist' });
   }
 });
@@ -1235,6 +1266,9 @@ app.put('/api/onboarding-checklist/me/:itemKey', authenticateToken, async (req, 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Update own onboarding checklist error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.status(503).json({ error: 'Checklist is not initialized yet. Please run database migration.' });
+    }
     res.status(500).json({ error: 'Failed to update checklist item' });
   }
 });
@@ -1272,6 +1306,9 @@ app.get('/api/onboarding-checklist/admin-overview', authenticateToken, requireAd
     res.json(result.rows);
   } catch (error) {
     console.error('Get onboarding admin overview error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch onboarding overview' });
   }
 });
@@ -1294,6 +1331,9 @@ app.get('/api/rules/acceptance/me', authenticateToken, async (req, res) => {
     return res.json({ accepted: true, accepted_at: result.rows[0].accepted_at });
   } catch (error) {
     console.error('Get rules acceptance error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json({ accepted: false, accepted_at: null });
+    }
     res.status(500).json({ error: 'Failed to fetch rules acceptance' });
   }
 });
@@ -1312,6 +1352,9 @@ app.post('/api/rules/acceptance/me', authenticateToken, async (req, res) => {
     res.status(201).json({ accepted: true, accepted_at: result.rows[0].accepted_at });
   } catch (error) {
     console.error('Create rules acceptance error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.status(503).json({ error: 'Rules acceptance is not initialized yet. Please run database migration.' });
+    }
     res.status(500).json({ error: 'Failed to save rules acceptance' });
   }
 });
