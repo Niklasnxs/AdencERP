@@ -16,6 +16,9 @@ export function CockpitGuide() {
               <li>Tagesstatus eintragen und bei Bedarf korrigieren</li>
               <li>Abwesenheiten wie Urlaub, Krankheit, Schule oder Homeoffice dokumentieren</li>
               <li>Monatliche Anwesenheit für den eigenen Account bestätigen</li>
+              <li>Dokumente für Admins und insbesondere für Marvin strukturiert hochladen</li>
+              <li>Wünsche, Anregungen oder Hinweise über den internen Briefkasten einreichen</li>
+              <li>Onboarding-Schritte über die persönliche Checkliste sichtbar abhaken</li>
               <li>Wichtige Team-Links und persönliche Zugangsinfos zentral abrufen</li>
             </ul>
           </section>
@@ -37,6 +40,9 @@ export function CockpitGuide() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Einträge sollten täglich gepflegt werden, damit die Übersicht aktuell bleibt.</li>
               <li>Nachträgliche Korrekturen sind möglich und ausdrücklich vorgesehen.</li>
+              <li>Unter „Interner Briefkasten“ können wichtige Dokumente wie Nachweise für Bildungsträger hochgeladen werden. Diese Uploads sind nur für Admins einsehbar.</li>
+              <li>Im internen Briefkasten können zusätzlich Wünsche eingereicht werden, zum Beispiel für die Einkaufsliste im Büro (Getränke, Snacks) oder andere Themen.</li>
+              <li>Über die Seite „Checkliste“ kann jede Person den eigenen Onboarding-Stand pflegen; Admins sehen den Gesamtfortschritt zentral in „Admin-Info“.</li>
               <li>Bei Fragen oder fehlenden Daten bitte die verantwortliche Ansprechperson informieren.</li>
             </ul>
           </section>
