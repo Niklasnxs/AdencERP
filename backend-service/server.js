@@ -996,13 +996,23 @@ app.get('/api/document-uploads/overview', authenticateToken, requireAdmin, async
          u.full_name,
          u.email,
          COUNT(du.id)::int AS upload_count,
-         MAX(du.created_at) AS latest_upload_at
+         MAX(du.created_at) AS latest_upload_at,
+         COUNT(du.id) FILTER (WHERE du.id IS NOT NULL AND dv.id IS NULL)::int AS unseen_count
        FROM users u
        LEFT JOIN document_uploads du ON du.user_id = u.id
+       LEFT JOIN document_upload_views dv
+         ON dv.upload_id = du.id
+        AND dv.admin_user_id = $1
        GROUP BY u.id, u.full_name, u.email
-       ORDER BY u.full_name ASC`
+       ORDER BY unseen_count DESC, latest_upload_at DESC NULLS LAST, u.full_name ASC`,
+      [req.user.id]
     );
-    res.json(result.rows);
+    res.json(
+      result.rows.map((row) => ({
+        ...row,
+        has_unseen: Number(row.unseen_count || 0) > 0,
+      }))
+    );
   } catch (error) {
     console.error('Get document upload overview error:', error);
     if (isMissingFeatureTableError(error)) {
@@ -1021,6 +1031,16 @@ app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, a
        ORDER BY created_at DESC`,
       [req.params.userId]
     );
+
+    await db.query(
+      `INSERT INTO document_upload_views (upload_id, admin_user_id)
+       SELECT du.id, $1
+       FROM document_uploads du
+       WHERE du.user_id = $2
+       ON CONFLICT (upload_id, admin_user_id) DO NOTHING`,
+      [req.user.id, req.params.userId]
+    );
+
     res.json(result.rows);
   } catch (error) {
     console.error('Get user document uploads error:', error);
@@ -1028,6 +1048,27 @@ app.get('/api/document-uploads/user/:userId', authenticateToken, requireAdmin, a
       return res.json([]);
     }
     res.status(500).json({ error: 'Failed to fetch user uploads' });
+  }
+});
+
+app.get('/api/document-uploads/unseen-count', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT COUNT(du.id)::int AS unseen_count
+       FROM document_uploads du
+       LEFT JOIN document_upload_views dv
+         ON dv.upload_id = du.id
+        AND dv.admin_user_id = $1
+       WHERE dv.id IS NULL`,
+      [req.user.id]
+    );
+    res.json({ unseen_count: Number(result.rows[0]?.unseen_count || 0) });
+  } catch (error) {
+    console.error('Get unseen upload count error:', error);
+    if (isMissingFeatureTableError(error)) {
+      return res.json({ unseen_count: 0 });
+    }
+    res.status(500).json({ error: 'Failed to fetch unseen upload count' });
   }
 });
 

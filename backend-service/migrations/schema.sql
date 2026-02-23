@@ -169,6 +169,17 @@ CREATE TABLE IF NOT EXISTS rules_acceptances (
     accepted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Gesehen-Status für Uploads je Admin
+CREATE TABLE IF NOT EXISTS document_upload_views (
+    id SERIAL PRIMARY KEY,
+    upload_id INTEGER NOT NULL REFERENCES document_uploads(id) ON DELETE CASCADE,
+    admin_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(upload_id, admin_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_upload_views_admin ON document_upload_views(admin_user_id);
+
 -- Insert default admin user (password: Adence#123)
 INSERT INTO users (email, password, full_name, role) 
 VALUES ('niklas.schindhelm@adence.de', '$2b$10$cmhKIeDmeHMzfld563gqkOYXsJas8k8s.tVcV1aInyIYc3lu2j2US', 'Niklas Schindhelm', 'admin')

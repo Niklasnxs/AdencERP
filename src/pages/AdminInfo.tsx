@@ -22,6 +22,16 @@ export function AdminInfo() {
   const [isLoadingUploads, setIsLoadingUploads] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const sortUploadOverview = (rows: DocumentUploadOverview[]) =>
+    [...rows].sort((a, b) => {
+      const unseenA = Number(a.unseen_count || 0);
+      const unseenB = Number(b.unseen_count || 0);
+      if (unseenB !== unseenA) return unseenB - unseenA;
+      const timeA = a.latest_upload_at ? new Date(a.latest_upload_at).getTime() : 0;
+      const timeB = b.latest_upload_at ? new Date(b.latest_upload_at).getTime() : 0;
+      return timeB - timeA;
+    });
+
   const load = async () => {
     setIsLoading(true);
     try {
@@ -30,7 +40,7 @@ export function AdminInfo() {
         checklistAPI.getAdminOverview(),
         briefkastenAPI.getAll(),
       ]);
-      setUploadOverview(uploads);
+      setUploadOverview(sortUploadOverview(uploads));
       setChecklistOverview(checklist);
       setSuggestions(suggestionItems);
     } catch (err) {
@@ -63,6 +73,13 @@ export function AdminInfo() {
     try {
       const uploads = await documentUploadsAPI.getByUser(user.user_id);
       setSelectedUserUploads(uploads);
+      setUploadOverview((prev) =>
+        sortUploadOverview(prev.map((entry) =>
+          entry.user_id === user.user_id
+            ? { ...entry, unseen_count: 0, has_unseen: false }
+            : entry
+        ))
+      );
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Uploads konnten nicht geladen werden.');
     } finally {
@@ -142,15 +159,23 @@ export function AdminInfo() {
               <button
                 key={user.user_id}
                 onClick={() => openUserUploads(user)}
-                className="w-full text-left border border-gray-200 rounded-lg px-4 py-3 hover:bg-gray-50"
+                className={`w-full text-left border rounded-lg px-4 py-3 hover:bg-gray-50 ${
+                  user.has_unseen ? 'border-green-300 bg-green-50/70' : 'border-gray-200'
+                }`}
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-semibold text-gray-900">{user.full_name}</p>
+                    <p className="font-semibold text-gray-900 flex items-center gap-2">
+                      {user.full_name}
+                      {user.has_unseen && <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />}
+                    </p>
                     <p className="text-sm text-gray-600">{user.email}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-blue-800">{user.upload_count} Uploads</p>
+                    {Boolean(user.unseen_count) && (
+                      <p className="text-xs font-semibold text-green-700">Neu: {user.unseen_count}</p>
+                    )}
                   </div>
                 </div>
               </button>

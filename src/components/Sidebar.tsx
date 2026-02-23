@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../AuthContext';
 import { cn } from '../utils';
 import { APP_LOGO_URL, APP_NAME } from '../config/branding';
+import { documentUploadsAPI } from '../services/api';
 
 interface NavItem {
   label: string;
@@ -30,6 +31,7 @@ interface NavItem {
 export function Sidebar() {
   const { user, logout, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasUnseenAdminUploads, setHasUnseenAdminUploads] = useState(false);
 
   const navItems: NavItem[] = [
     {
@@ -83,6 +85,32 @@ export function Sidebar() {
   ];
 
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+
+  useEffect(() => {
+    let timer: number | null = null;
+
+    const loadUnseen = async () => {
+      if (!isAdmin) {
+        setHasUnseenAdminUploads(false);
+        return;
+      }
+      try {
+        const result = await documentUploadsAPI.getUnseenCount();
+        setHasUnseenAdminUploads((result.unseen_count || 0) > 0);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadUnseen();
+    if (isAdmin) {
+      timer = window.setInterval(loadUnseen, 60000);
+    }
+
+    return () => {
+      if (timer) window.clearInterval(timer);
+    };
+  }, [isAdmin]);
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -189,6 +217,9 @@ export function Sidebar() {
                   >
                     {item.icon}
                     <span className="font-medium">{item.label}</span>
+                    {item.path === '/admin-info' && hasUnseenAdminUploads && (
+                      <span className="ml-auto w-2.5 h-2.5 rounded-full bg-green-400 inline-block" />
+                    )}
                   </NavLink>
                 )}
               </li>

@@ -138,6 +138,8 @@ export interface DocumentUploadOverview {
   email: string;
   upload_count: number;
   latest_upload_at: string | null;
+  unseen_count?: number;
+  has_unseen?: boolean;
 }
 
 export type SuggestionCategory = 'Einkaufsliste' | 'Verbesserungsvorschlag' | 'Problem/Kummerkasten' | 'Sonstiges';

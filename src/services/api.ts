@@ -220,6 +220,7 @@ export const documentUploadsAPI = {
       body: JSON.stringify(payload),
     }),
   getOverview: () => apiRequest<any[]>('/document-uploads/overview'),
+  getUnseenCount: () => apiRequest<{ unseen_count: number }>('/document-uploads/unseen-count'),
   getByUser: (userId: string) => apiRequest<any[]>(`/document-uploads/user/${userId}`),
   download: (id: string) =>
     apiRequestBlob(`/document-uploads/${id}/download`, {
